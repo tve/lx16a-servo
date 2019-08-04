@@ -57,7 +57,7 @@ bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
 
     // read back the expected response
     uint32_t t0 = millis();
-    uint32_t tout = _bus.time(param_len) + 20; // 20ms for the servo to think
+    uint32_t tout = _bus.time(param_len+6) + 20; // 20ms for the servo to think
     int got = 0;
     uint8_t sum = 0;
     if (_debug) printf("RCV: ");
@@ -72,11 +72,12 @@ bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
                 if (ch != 0x55) { if (_debug) printf(" ERR (hdr)\n"); return false; }
                 break;
             case 2:
-                if (ch != _id) { if (_debug) printf(" ERR (id)\n"); return false; }
+                if (ch != _id && _id != 0xfe) { if (_debug) printf(" ERR (id)\n"); return false; }
                 break;
             case 3:
                 if (ch < 3 || ch > 7) { if (_debug) printf(" ERR (len)\n"); return false; }
                 len = ch+3;
+                if (len > param_len+6) { if (_debug) printf(" ERR (param_len)\n"); return false; }
                 break;
             case 4:
                 if (ch != cmd) { if (_debug) printf(" ERR (cmd)\n"); return false; }

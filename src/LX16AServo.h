@@ -48,6 +48,68 @@ public:
     // returns true if everything checks out correctly.
     bool read(uint8_t cmd, uint8_t *params, int param_len);
 
+    // motor_mode causes the motor to rotate at a fixed speed (-1000..1000) and switches to
+    // position (servo) mode if speed==0
+    bool motor_mode(uint16_t speed) {
+        uint8_t params[] = { (uint8_t)(speed==0 ? 0 : 1), 0, (uint8_t)speed, (uint8_t)(speed>>8) };
+        return write(29, params, sizeof(params));
+    }
+
+    // angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
+    bool angle_adjust(int16_t angle) {
+        uint8_t params[] = { (uint8_t)((int32_t)angle*125/30) };
+        return write(17, params, sizeof(params));
+    }
+
+    // angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
+    bool angle_limit(uint16_t min_angle, uint16_t max_angle) {
+        min_angle = min_angle/24;
+        max_angle = max_angle/24;
+        uint8_t params[] = {
+            (uint8_t)min_angle, (uint8_t)(min_angle>>8),
+            (uint8_t)max_angle, (uint8_t)(max_angle>>8) };
+        return write(20, params, sizeof(params));
+    }
+
+    // move_time positions the servo to the angle in centi-degrees (0..24000) in time milliseconds (0..1000)
+    bool move_time(uint16_t angle, uint16_t time) {
+        angle = angle/24;
+        uint8_t params[] = { (uint8_t)angle, (uint8_t)(angle>>8), (uint8_t)time, (uint8_t)(time>>8) };
+        return write(1, params, sizeof(params));
+    }
+
+    // id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
+    bool id_read(uint8_t &id) {
+        uint8_t params[1];
+        if (!read(14, params, sizeof(params))) return false;
+        id = params[0];
+        return true;
+    }
+
+    // id_write sets the id of the servo, updates the object's id if write appears successful
+    bool id_write(uint8_t id) {
+        uint8_t params[] = { id };
+        bool ok = write(13, params, sizeof(params));
+        if (ok) _id = id;
+        return ok;
+    }
+
+    // temp_read returns the servo temperature in centigrade
+    bool temp(uint8_t &temp) {
+        uint8_t params[1];
+        if (!read(26, params, sizeof(params))) return false;
+        temp = params[0];
+        return true;
+    }
+
+    // vin_read returns the servo input voltage in millivolts
+    bool vin(uint16_t &vin) {
+        uint8_t params[2];
+        if (!read(27, params, sizeof(params))) return false;
+        vin = params[0]|((uint16_t)params[1]<<8);
+        return true;
+    }
+
 //private:
     LX16ABus &_bus;
     uint8_t _id;
