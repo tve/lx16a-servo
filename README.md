@@ -26,8 +26,6 @@ Step servo through its 240 degrees range, 10% at a time:
 ```
 int n = 0;
 loop() {
-}
-```
     uint16_t angle = (n%11) * 100;
 
     uint8_t params[] = { (uint8_t)angle, (uint8_t)(angle>>8), 500&0xff, 500>>8 };
