@@ -78,6 +78,14 @@ public:
         return write(1, params, sizeof(params));
     }
 
+    // pos_read returns the servo position in centi-degrees (0..24000)
+    bool pos_read(uint16_t &angle) {
+        uint8_t params[2];
+        if (!read(28, params, sizeof(params))) return false;
+        angle = params[0]|((uint16_t)params[1]<<8);
+        return true;
+    }
+
     // id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
     bool id_read(uint8_t &id) {
         uint8_t params[1];
