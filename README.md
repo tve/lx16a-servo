@@ -9,6 +9,15 @@ as opposed to the more common 3-pin configuration (TX, RX, direction).
 The library's LX16AServo class provides two main methods to write a command and to read settings.
 It's very simple!
 
+# Electrical
+
+```
+MCU RX -> Direct Connection -> LX-16a Serial Pin
+MCU TX -> 1K Ohm resistor   -> LX-16a Serial Pin
+6v-7.5v ->  LX-16a Power (center) pin
+GND     ->  LX-16a GND Pin
+```
+
 ## Quick start
 
 Allocate a bus object to represent the serial line, and a servo object for the first servo:
