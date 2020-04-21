@@ -28,7 +28,7 @@ LX16AServo servo(servoBus, 1);
 
 Initialize the bus to use Serial1 on pin 33:
 ```
-servoBus.begin(Serial1, 33);
+servoBus.begin(Serial1);
 ```
 
 Step servo through its 240 degrees range, 10% at a time:
