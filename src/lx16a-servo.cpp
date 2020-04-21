@@ -2,7 +2,7 @@
 
 // write a command with the provided parameters
 // returns true if the command was written without conflict onto the bus
-bool LX16ABus::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID) {
+bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID) {
 	if (param_cnt < 0 || param_cnt > 4){
 		return false;
 	}
@@ -66,7 +66,7 @@ bool LX16ABus::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t 
 
 // read sends a command to the servo and reads back the response into the params buffer.
 // returns true if everything checks out correctly.
-bool LX16ABus::read(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID) {
+bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID) {
 	// send the read command
 	bool ok = write(cmd, NULL, 0,MYID);
 	if (!ok)

@@ -32,6 +32,7 @@
 
 class LX16ABus {
 public:
+
 	LX16ABus() {
 	}
 	void begin(HardwareSerial * port, int baud = 115200) {
@@ -72,14 +73,51 @@ public:
 	void write(const uint8_t *buf, int buflen) {
 		_port->write(buf, buflen);
 	}
+	int retry = 3;
+	void setRetryCount(int count){
+		retry = count;
+	}
 	// write a command with the provided parameters
 	// returns true if the command was written without conflict onto the bus
-	bool write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID );
+	bool write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
+			uint8_t MYID);
 
 	// read sends a command to the servo and reads back the response into the params buffer.
 	// returns true if everything checks out correctly.
-	bool read(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID );
-//private:
+	bool read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
+			uint8_t MYID);
+
+	// write a command with the provided parameters
+	// returns true if the command was written without conflict onto the bus
+	bool write(uint8_t cmd, const uint8_t *params, int param_cnt,
+			uint8_t MYID) {
+		if (retry == 0) {
+			return write_no_retry(cmd, params, param_cnt, MYID);
+		} else {
+			for (int i = 0; i < retry; i++) {
+				bool ok = write_no_retry(cmd, params, param_cnt, MYID);
+				if (ok)
+					return true;
+			}
+		}
+		return false;
+	}
+
+	// read sends a command to the servo and reads back the response into the params buffer.
+	// returns true if everything checks out correctly.
+	bool read(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID) {
+		if (retry == 0) {
+			return read_no_retry(cmd, params, param_len, MYID);
+		} else {
+			for (int i = 0; i < retry; i++) {
+				bool ok = read_no_retry(cmd, params, param_len, MYID);
+				if (ok)
+					return true;
+			}
+		}
+		return false;
+	}
+
 	HardwareSerial * _port = NULL;
 	int _baud = 115200;
 	/**
@@ -180,7 +218,7 @@ public:
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4,_id);
+		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4, _id);
 	}
 	/**
 	 * Command name: SERVO_MOVE_TIME_WAIT_WRITE
@@ -207,7 +245,8 @@ public:
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,_id);
+		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
+				_id);
 	}
 
 	/**
@@ -217,7 +256,7 @@ public:
 	 */
 	void stop() {
 		uint8_t params[1];
-		commandOK = _bus.write(LX16A_SERVO_MOVE_STOP, params, 1,_id);
+		commandOK = _bus.write(LX16A_SERVO_MOVE_STOP, params, 1, _id);
 	}
 
 	/**
@@ -230,7 +269,7 @@ public:
 	 */
 	void disable() {
 		uint8_t params[] = { 0 };
-		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1,_id);
+		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1, _id);
 	}
 	/**
 	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
@@ -242,7 +281,7 @@ public:
 	 */
 	void enable() {
 		uint8_t params[] = { 1 };
-		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1,_id);
+		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1, _id);
 	}
 
 	/**
@@ -265,7 +304,7 @@ public:
 		bool isMotorMode_tmp = speed != 0;
 		uint8_t params[] = { (uint8_t) (isMotorMode_tmp ? 1 : 0), 0,
 				(uint8_t) speed, (uint8_t) (speed >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4,_id);
+		commandOK = _bus.write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4, _id);
 		if (commandOK)
 			isMotorMode = isMotorMode_tmp;
 	}
@@ -273,7 +312,7 @@ public:
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
 	void angle_adjust(int16_t angle) {
 		uint8_t params[] = { (uint8_t) ((int32_t) angle * 125 / 30) };
-		commandOK = _bus.write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1,_id);
+		commandOK = _bus.write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1, _id);
 	}
 
 	// angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
@@ -282,13 +321,13 @@ public:
 		max_angle = max_angle / 24;
 		uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
 				(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4,_id);
+		commandOK = _bus.write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
 	}
 
 	// pos_read returns the servo position in centi-degrees (0..24000)
 	int16_t pos_read() {
 		uint8_t params[2];
-		if (!_bus.read(LX16A_SERVO_POS_READ, params, 2,_id)) {
+		if (!_bus.read(LX16A_SERVO_POS_READ, params, 2, _id)) {
 			commandOK = false;
 			return lastKnownGoodPosition;
 		}
@@ -301,7 +340,7 @@ public:
 	// id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
 	uint8_t id_read() {
 		uint8_t params[1];
-		if (!_bus.read(LX16A_SERVO_ID_READ, params, 1,_id)) {
+		if (!_bus.read(LX16A_SERVO_ID_READ, params, 1, _id)) {
 			commandOK = false;
 			return 0;
 		}
@@ -318,7 +357,7 @@ public:
 	 */
 	bool readIsMotorMode() {
 		uint8_t params[1];
-		if (!_bus.read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1,_id)) {
+		if (!_bus.read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1, _id)) {
 			commandOK = false;
 			return false;
 		}
@@ -329,7 +368,7 @@ public:
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
-		bool ok = _bus.write(LX16A_SERVO_ID_WRITE, params, 1,_id);
+		bool ok = _bus.write(LX16A_SERVO_ID_WRITE, params, 1, _id);
 		if (ok)
 			_id = id;
 		commandOK = ok;
@@ -338,7 +377,7 @@ public:
 	// temp_read returns the servo temperature in centigrade
 	uint8_t temp() {
 		uint8_t params[1];
-		if (!_bus.read(LX16A_SERVO_TEMP_READ, params, 1,_id)) {
+		if (!_bus.read(LX16A_SERVO_TEMP_READ, params, 1, _id)) {
 			commandOK = false;
 			return 0;
 		}
@@ -349,7 +388,7 @@ public:
 	// vin_read returns the servo input voltage in millivolts
 	uint16_t vin() {
 		uint8_t params[2];
-		if (!_bus.read(LX16A_SERVO_VIN_READ, params, 2,_id)) {
+		if (!_bus.read(LX16A_SERVO_VIN_READ, params, 2, _id)) {
 			commandOK = false;
 			return 0;
 		}
