@@ -2,24 +2,25 @@
 #include <lx16a-servo.h>
 LX16ABus servoBus;
 LX16AServo servo(servoBus, 1);
-int n = 0;
 void setup(){
-	servoBus.begin(Serial1, 33);
+	servoBus.begin(&Serial1);
 	Serial.begin(115200);
 }
 
 void loop(){
-    uint16_t angle = (n%11) * 100;
+	for (int i=0;i<10;i++){
+		int16_t pos=0 ;
+		pos = servo.pos_read(&pos);
 
-    uint8_t params[] = { (uint8_t)angle, (uint8_t)(angle>>8), 500&0xff, 500>>8 };
-    bool ok = servo.write(1, params, sizeof(params));
-    Serial.printf("Move to %d -> %s\n", angle, ok?"OK":"ERR");
+		Serial.printf("Position at %d -> %s\n", pos, servo.isCommandOk()?"OK":"ERR");
 
-    delay(10);
+		uint16_t angle = i * 2400;
 
-    ok = servo.read(2, params, 4);
-    Serial.printf("Position at %d -> %s\n", params[0]|(params[1]<<8), ok?"OK":"ERR");
 
-    n++;
-    delay(2000);
+		servo.move_time(angle,500);
+		Serial.printf("Move to %d -> %s\n", angle, servo.isCommandOk()?"OK":"ERR");
+
+		delay(2000);
+	}
+
 }
