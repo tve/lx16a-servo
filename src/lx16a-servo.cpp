@@ -2,16 +2,19 @@
 
 // write a command with the provided parameters
 // returns true if the command was written without conflict onto the bus
-bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt) {
+bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID=0) {
 	if (param_cnt < 0 || param_cnt > 4){
 		return false;
+	}
+	if(MYID==0){
+		MYID=_id;
 	}
 	// prepare packet in a buffer
 	int buflen = 6 + param_cnt;
 	uint8_t buf[buflen];
 	buf[0] = 0x55;
 	buf[1] = 0x55;
-	buf[2] = _id;
+	buf[2] = MYID;
 	buf[3] = buflen - 3;
 	buf[4] = cmd;
 	for (int i = 0; i < param_cnt; i++){
@@ -70,7 +73,6 @@ bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
 	bool ok = write(cmd, NULL, 0);
 	if (!ok)
 		return false;
-
 	// read back the expected response
 	uint32_t t0 = millis();
 	uint32_t tout = _bus.time(param_len + 6) + 20; // 20ms for the servo to think

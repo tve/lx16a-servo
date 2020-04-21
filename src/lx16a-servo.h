@@ -1,10 +1,40 @@
 #pragma once
 #include <Arduino.h>
+#define LX16A_BROADCAST_ID 0xFE
+#define LX16A_SERVO_MOVE_TIME_WRITE 1
+#define LX16A_SERVO_MOVE_TIME_READ 2
+#define LX16A_SERVO_MOVE_TIME_WAIT_WRITE 7
+#define LX16A_SERVO_MOVE_TIME_WAIT_READ 8
+#define LX16A_SERVO_MOVE_START 11
+#define LX16A_SERVO_MOVE_STOP 12
+#define LX16A_SERVO_ID_WRITE 13
+#define LX16A_SERVO_ID_READ 14
+#define LX16A_SERVO_ANGLE_OFFSET_ADJUST 17
+#define LX16A_SERVO_ANGLE_OFFSET_WRITE 18
+#define LX16A_SERVO_ANGLE_OFFSET_READ 19
+#define LX16A_SERVO_ANGLE_LIMIT_WRITE 20
+#define LX16A_SERVO_ANGLE_LIMIT_READ 21
+#define LX16A_SERVO_VIN_LIMIT_WRITE 22
+#define LX16A_SERVO_VIN_LIMIT_READ 23
+#define LX16A_SERVO_TEMP_MAX_LIMIT_WRITE 24
+#define LX16A_SERVO_TEMP_MAX_LIMIT_READ 25
+#define LX16A_SERVO_TEMP_READ 26
+#define LX16A_SERVO_VIN_READ 27
+#define LX16A_SERVO_POS_READ 28
+#define LX16A_SERVO_OR_MOTOR_MODE_WRITE 29
+#define LX16A_SERVO_OR_MOTOR_MODE_READ 30
+#define LX16A_SERVO_LOAD_OR_UNLOAD_WRITE 31
+#define LX16A_SERVO_LOAD_OR_UNLOAD_READ 32
+#define LX16A_SERVO_LED_CTRL_WRITE 33
+#define LX16A_SERVO_LED_CTRL_READ 34
+#define LX16A_SERVO_LED_ERROR_WRITE 35
+#define LX16A_SERVO_LED_ERROR_READ 36
+
 class LX16ABus {
 public:
 	LX16ABus() {
 	}
-	void begin(HardwareSerial  * port,int baud = 115200) {
+	void begin(HardwareSerial * port, int baud = 115200) {
 		_port = port;
 		_baud = baud;
 		port->begin(baud, SERIAL_8N1);
@@ -44,13 +74,14 @@ public:
 	}
 
 //private:
-	HardwareSerial * _port =NULL;
-	int _baud=115200;
+	HardwareSerial * _port = NULL;
+	int _baud = 115200;
 };
 
 class LX16AServo {
 private:
 	bool commandOK = true;
+	int16_t lastKnownGoodPosition = 0;
 public:
 	LX16AServo(LX16ABus &bus, int id) :
 			_bus(bus), _id(id), _debug(false) {
@@ -60,30 +91,153 @@ public:
 	void debug(bool on) {
 		_debug = on;
 	}
-	bool isCommandOk(){
+	bool isCommandOk() {
 		return commandOK;
 	}
 
 	// write a command with the provided parameters
 	// returns true if the command was written without conflict onto the bus
-	bool write(uint8_t cmd, const uint8_t *params, int param_cnt);
+	bool write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID =
+			0);
 
 	// read sends a command to the servo and reads back the response into the params buffer.
 	// returns true if everything checks out correctly.
 	bool read(uint8_t cmd, uint8_t *params, int param_len);
 
+	/**
+	 * Length: 7
+	 Parameter 1: lower 8 bits of angle value
+	 Parameter 2: higher 8 bits of angle value.range 0~100. corresponding to the
+	 servo angle of 0 ~ 240 °, that means the minimum angle of the servo can be
+	 varied is 0.24 degree.
+	 Parameter 3: lower 8 bits of time value
+	 Parameter 4: higher 8 bits of time value. the range of time is 0~30000ms.
+	 When the command is sent to servo, the servo will be rotated from current
+	 angle to parameter angle at uniform speed within param
+	 */
+	void move_time(uint16_t angle, uint16_t time) {
+		angle = angle / 24;
+		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
+				(uint8_t) time, (uint8_t) (time >> 8) };
+		commandOK = write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4);
+	}
+	/**
+	 * Command name: SERVO_MOVE_TIME_WAIT_WRITE
+	 Command value: 7
+	 Length : 7
+	 Parameter1: lower 8 bits of preset angle
+	 Parameter2: higher 8 bits of preset angle. range 0~100. corresponding to the
+	 servo angle of 0 ~ 240 °. that means the minimum angle of the servo can be
+	 varied is 0.24 degree.
+	 Parameter3: lower 8 bits of preset time
+	 Parameter3: higher 8 bits of preset time. the range of time is 0~30000ms.
+	 The function of this command is similar to this
+	 “SERVO_MOVE_TIME_WRITE” command in the first point. But the difference
+	 is that the servo will not immediately turn when the command arrives at the
+	 servo,the servo will be rotated from current angle to parameter angle at unifor
+	 m speed within parameter time until the command name SERVO_MOVE_ST
+	 ART sent to servo(command value of 11)
+	 , then the servo will be rotate
+	 */
+	void move_time_and_wait_for_sync(uint16_t angle, uint16_t time) {
+		angle = angle / 24;
+		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
+				(uint8_t) time, (uint8_t) (time >> 8) };
+		commandOK = write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4);
+	}
+	/**
+	 * Command name: SERVO_MOVE_START Command value: 11
+	 Length: 3
+	 With the use of command SERVO_MOVE_TIME_WAIT_WRITE, described in
+	 point 3
+	 */
+	void move_sync_start() {
+		uint8_t params[1];
+		commandOK = write(LX16A_SERVO_MOVE_START, params, 1,
+		LX16A_BROADCAST_ID);
+	}
+	/**
+	 * Command name: SERVO_MOVE_STOP Command value: 12
+	 Length: 3
+	 When the command arrives at the servo, it will stop running
+	 */
+	void stop() {
+		uint8_t params[1];
+		commandOK = write(LX16A_SERVO_MOVE_STOP, params, 1);
+	}
+	/**
+	 * Command name: SERVO_MOVE_STOP Command value: 12
+	 Length: 3
+	 When the command arrives at the servo, it will stop running
+	 This is sent to all servos at once
+	 */
+	void stopAll() {
+		uint8_t params[1];
+		commandOK = write(LX16A_SERVO_MOVE_STOP, params, 1,
+		LX16A_BROADCAST_ID);
+	}
+	/**
+	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
+	 Command value: 31 Length: 4
+	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
+	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
+	 has no torque output. 1 represents the loaded motor, then the servo has a
+	 torque output, the default value is 0.
+	 */
+	void disable() {
+		uint8_t params[] = { 0 };
+		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1);
+	}
+	/**
+	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
+	 Command value: 31 Length: 4
+	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
+	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
+	 has no torque output. 1 represents the loaded motor, then the servo has a
+	 torque output, the default value is 0.
+	 */
+	void enable() {
+		uint8_t params[] = { 1 };
+		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1);
+	}
+	/**
+	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
+	 Command value: 31 Length: 4
+	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
+	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
+	 has no torque output. 1 represents the loaded motor, then the servo has a
+	 torque output, the default value is 0.
+	 */
+	void disableAll() {
+		uint8_t params[] = { 0 };
+		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1,
+				LX16A_BROADCAST_ID);
+	}
+	/**
+	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
+	 Command value: 31 Length: 4
+	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
+	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
+	 has no torque output. 1 represents the loaded motor, then the servo has a
+	 torque output, the default value is 0.
+	 */
+	void enableAll() {
+		uint8_t params[] = { 1 };
+		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1,
+				LX16A_BROADCAST_ID);
+	}
 	// motor_mode causes the motor to rotate at a fixed speed (-1000..1000) and switches to
 	// position (servo) mode if speed==0
 	void motor_mode(uint16_t speed) {
 		uint8_t params[] = { (uint8_t) (speed == 0 ? 0 : 1), 0, (uint8_t) speed,
 				(uint8_t) (speed >> 8) };
-		commandOK=  write(29, params, sizeof(params));
+		commandOK = write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4);
 	}
 
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
 	void angle_adjust(int16_t angle) {
 		uint8_t params[] = { (uint8_t) ((int32_t) angle * 125 / 30) };
-		commandOK= write(17, params, sizeof(params));
+		commandOK = write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1);
 	}
 
 	// angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
@@ -92,36 +246,30 @@ public:
 		max_angle = max_angle / 24;
 		uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
 				(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-		commandOK=  write(20, params, sizeof(params));
-	}
-
-	// move_time positions the servo to the angle in centi-degrees (0..24000) in time milliseconds (0..1000)
-	void move_time(uint16_t angle, uint16_t time) {
-		angle = angle / 24;
-		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
-				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK=  write(1, params, sizeof(params));
+		commandOK = write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4);
 	}
 
 	// pos_read returns the servo position in centi-degrees (0..24000)
 	int16_t pos_read() {
 		uint8_t params[2];
-		if (!read(28, params, sizeof(params))){
-			commandOK=  false;
-			return 0;
+		if (!read(LX16A_SERVO_POS_READ, params, 2)) {
+			commandOK = false;
+			return lastKnownGoodPosition;
 		}
-		commandOK=  true;
-		return ((int16_t) params[0] | ((int16_t) params[1] << 8)) * 24;
+		commandOK = true;
+		lastKnownGoodPosition = ((int16_t) params[0]
+				| ((int16_t) params[1] << 8)) * 24;
+		return lastKnownGoodPosition;
 	}
 
 	// id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
 	uint8_t id_read() {
 		uint8_t params[1];
-		if (!read(14, params, sizeof(params))){
-			commandOK=  false;
+		if (!read(LX16A_SERVO_ID_READ, params, 1)) {
+			commandOK = false;
 			return 0;
 		}
-		commandOK=  true;
+		commandOK = true;
 		return params[0];
 
 	}
@@ -129,36 +277,36 @@ public:
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
-		bool ok = write(13, params, sizeof(params));
+		bool ok = write(LX16A_SERVO_ID_WRITE, params, 1);
 		if (ok)
 			_id = id;
-		commandOK=  ok;
+		commandOK = ok;
 	}
 
 	// temp_read returns the servo temperature in centigrade
 	uint8_t temp() {
 		uint8_t params[1];
-		if (!read(26, params, sizeof(params))){
-			commandOK=  false;
+		if (!read(LX16A_SERVO_TEMP_READ, params, 1)) {
+			commandOK = false;
 			return 0;
 		}
-		commandOK=  true;
+		commandOK = true;
 		return params[0];
 	}
 
 	// vin_read returns the servo input voltage in millivolts
 	uint16_t vin() {
 		uint8_t params[2];
-		if (!read(27, params, sizeof(params))){
-			commandOK=  false;
+		if (!read(LX16A_SERVO_VIN_READ, params, 2)) {
+			commandOK = false;
 			return 0;
 		}
-		commandOK=  true;
+		commandOK = true;
 		return params[0] | ((uint16_t) params[1] << 8);
 	}
 
 //private:
 	LX16ABus &_bus;
-	uint8_t _id;
+	uint8_t _id = LX16A_BROADCAST_ID;
 	bool _debug;
 };
