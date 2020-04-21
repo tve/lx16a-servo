@@ -2,13 +2,11 @@
 
 // write a command with the provided parameters
 // returns true if the command was written without conflict onto the bus
-bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID=0) {
+bool LX16ABus::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID) {
 	if (param_cnt < 0 || param_cnt > 4){
 		return false;
 	}
-	if(MYID==0){
-		MYID=_id;
-	}
+
 	// prepare packet in a buffer
 	int buflen = 6 + param_cnt;
 	uint8_t buf[buflen];
@@ -34,22 +32,22 @@ bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_
 //	}
 
 	// clear input buffer
-	while (_bus.available())
-		_bus.read();
+	while (available())
+		read();
 
 	// send command packet
 	uint32_t t0 = millis();
-	_bus.write(buf, buflen);
+	write(buf, buflen);
 
 	// expect to read back command by virtue of single-pin loop-back
-	uint32_t tout = _bus.time(buflen) + 2; // 2ms margin
+	uint32_t tout = time(buflen) + 2; // 2ms margin
 	int got = 0;
 	bool ok = true;
 //	if (_debug)
 //		printf("RCV: ");
 	while (got < buflen && millis() - t0 < tout) {
-		if (_bus.available()) {
-			int ch = _bus.read();
+		if (available()) {
+			int ch = read();
 //			if (_debug)
 //				printf(" 0x%02x", ch);
 			if (ch != buf[got])
@@ -68,22 +66,22 @@ bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_
 
 // read sends a command to the servo and reads back the response into the params buffer.
 // returns true if everything checks out correctly.
-bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
+bool LX16ABus::read(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID) {
 	// send the read command
-	bool ok = write(cmd, NULL, 0);
+	bool ok = write(cmd, NULL, 0,MYID);
 	if (!ok)
 		return false;
 	// read back the expected response
 	uint32_t t0 = millis();
-	uint32_t tout = _bus.time(param_len + 6) + 20; // 20ms for the servo to think
+	uint32_t tout = time(param_len + 6) + 20; // 20ms for the servo to think
 	int got = 0;
 	uint8_t sum = 0;
 //	if (_debug)
 //		printf("RCV: ");
 	int len = 7; // minimum length
 	while (got < len && millis() - t0 < tout) {
-		if (_bus.available()) {
-			int ch = _bus.read();
+		if (available()) {
+			int ch = read();
 //			if (_debug)
 //				printf(" 0x%02x", ch);
 			switch (got) {
@@ -96,7 +94,7 @@ bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
 				}
 				break;
 			case 2:
-				if (ch != _id && _id != 0xfe) {
+				if (ch != MYID && MYID != 0xfe) {
 //					if (_debug)
 //						printf(" ERR (id)\n");
 					return false;

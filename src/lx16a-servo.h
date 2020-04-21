@@ -72,10 +72,67 @@ public:
 	void write(const uint8_t *buf, int buflen) {
 		_port->write(buf, buflen);
 	}
+	// write a command with the provided parameters
+	// returns true if the command was written without conflict onto the bus
+	bool write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID );
 
+	// read sends a command to the servo and reads back the response into the params buffer.
+	// returns true if everything checks out correctly.
+	bool read(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID );
 //private:
 	HardwareSerial * _port = NULL;
 	int _baud = 115200;
+	/**
+	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
+	 Command value: 31 Length: 4
+	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
+	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
+	 has no torque output. 1 represents the loaded motor, then the servo has a
+	 torque output, the default value is 0.
+	 @return sucess
+	 */
+	bool disableAll() {
+		uint8_t params[] = { 0 };
+		return write(LX16A_SERVO_ID_WRITE, params, 1,
+		LX16A_BROADCAST_ID);
+	}
+	/**
+	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
+	 Command value: 31 Length: 4
+	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
+	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
+	 has no torque output. 1 represents the loaded motor, then the servo has a
+	 torque output, the default value is 0.
+	 @return sucess
+	 */
+	bool enableAll() {
+		uint8_t params[] = { 1 };
+		return write(LX16A_SERVO_ID_WRITE, params, 1,
+		LX16A_BROADCAST_ID);
+	}
+	/**
+	 * Command name: SERVO_MOVE_START Command value: 11
+	 Length: 3
+	 With the use of command SERVO_MOVE_TIME_WAIT_WRITE, described in
+	 point 3
+	 @return sucess
+	 */
+	bool move_sync_start() {
+		uint8_t params[1];
+		return write(LX16A_SERVO_MOVE_START, params, 1,
+		LX16A_BROADCAST_ID);
+	}
+	/**
+	 * Command name: SERVO_MOVE_STOP Command value: 12
+	 Length: 3
+	 When the command arrives at the servo, it will stop running
+	 This is sent to all servos at once
+	 */
+	void stopAll() {
+		uint8_t params[1];
+		write(LX16A_SERVO_MOVE_STOP, params, 1,
+		LX16A_BROADCAST_ID);
+	}
 };
 
 class LX16AServo {
@@ -104,14 +161,6 @@ public:
 		motor_mode(0);
 		pos_read();
 	}
-	// write a command with the provided parameters
-	// returns true if the command was written without conflict onto the bus
-	bool write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID =
-			0);
-
-	// read sends a command to the servo and reads back the response into the params buffer.
-	// returns true if everything checks out correctly.
-	bool read(uint8_t cmd, uint8_t *params, int param_len);
 
 	/**
 	 * Length: 7
@@ -131,7 +180,7 @@ public:
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK = write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4);
+		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4,_id);
 	}
 	/**
 	 * Command name: SERVO_MOVE_TIME_WAIT_WRITE
@@ -158,22 +207,9 @@ public:
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK = write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4);
+		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,_id);
 	}
-	/**
-	 * Command name: SERVO_MOVE_START Command value: 11
-	 Length: 3
-	 With the use of command SERVO_MOVE_TIME_WAIT_WRITE, described in
-	 point 3
-	 */
-	void move_sync_start() {
-		initialize();
-		if (isMotorMode)
-			motor_mode(0);
-		uint8_t params[1];
-		commandOK = write(LX16A_SERVO_MOVE_START, params, 1,
-		LX16A_BROADCAST_ID);
-	}
+
 	/**
 	 * Command name: SERVO_MOVE_STOP Command value: 12
 	 Length: 3
@@ -181,19 +217,9 @@ public:
 	 */
 	void stop() {
 		uint8_t params[1];
-		commandOK = write(LX16A_SERVO_MOVE_STOP, params, 1);
+		commandOK = _bus.write(LX16A_SERVO_MOVE_STOP, params, 1,_id);
 	}
-	/**
-	 * Command name: SERVO_MOVE_STOP Command value: 12
-	 Length: 3
-	 When the command arrives at the servo, it will stop running
-	 This is sent to all servos at once
-	 */
-	void stopAll() {
-		uint8_t params[1];
-		commandOK = write(LX16A_SERVO_MOVE_STOP, params, 1,
-		LX16A_BROADCAST_ID);
-	}
+
 	/**
 	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
 	 Command value: 31 Length: 4
@@ -204,7 +230,7 @@ public:
 	 */
 	void disable() {
 		uint8_t params[] = { 0 };
-		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1);
+		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1,_id);
 	}
 	/**
 	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
@@ -216,34 +242,9 @@ public:
 	 */
 	void enable() {
 		uint8_t params[] = { 1 };
-		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1);
+		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1,_id);
 	}
-	/**
-	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
-	 Command value: 31 Length: 4
-	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
-	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
-	 has no torque output. 1 represents the loaded motor, then the servo has a
-	 torque output, the default value is 0.
-	 */
-	void disableAll() {
-		uint8_t params[] = { 0 };
-		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1,
-		LX16A_BROADCAST_ID);
-	}
-	/**
-	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
-	 Command value: 31 Length: 4
-	 Parameter 1: Whether the internal motor of the servo is unloaded power-down
-	 or not, the range 0 or 1, 0 represents the unloading power down, and the servo
-	 has no torque output. 1 represents the loaded motor, then the servo has a
-	 torque output, the default value is 0.
-	 */
-	void enableAll() {
-		uint8_t params[] = { 1 };
-		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1,
-		LX16A_BROADCAST_ID);
-	}
+
 	/**
 	 * Command name: SERVO_OR_MOTOR_MODE_WRITE
 	 Command value: 29
@@ -264,7 +265,7 @@ public:
 		bool isMotorMode_tmp = speed != 0;
 		uint8_t params[] = { (uint8_t) (isMotorMode_tmp ? 1 : 0), 0,
 				(uint8_t) speed, (uint8_t) (speed >> 8) };
-		commandOK = write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4);
+		commandOK = _bus.write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4,_id);
 		if (commandOK)
 			isMotorMode = isMotorMode_tmp;
 	}
@@ -272,7 +273,7 @@ public:
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
 	void angle_adjust(int16_t angle) {
 		uint8_t params[] = { (uint8_t) ((int32_t) angle * 125 / 30) };
-		commandOK = write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1);
+		commandOK = _bus.write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1,_id);
 	}
 
 	// angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
@@ -281,13 +282,13 @@ public:
 		max_angle = max_angle / 24;
 		uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
 				(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-		commandOK = write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4);
+		commandOK = _bus.write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4,_id);
 	}
 
 	// pos_read returns the servo position in centi-degrees (0..24000)
 	int16_t pos_read() {
 		uint8_t params[2];
-		if (!read(LX16A_SERVO_POS_READ, params, 2)) {
+		if (!_bus.read(LX16A_SERVO_POS_READ, params, 2,_id)) {
 			commandOK = false;
 			return lastKnownGoodPosition;
 		}
@@ -300,7 +301,7 @@ public:
 	// id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
 	uint8_t id_read() {
 		uint8_t params[1];
-		if (!read(LX16A_SERVO_ID_READ, params, 1)) {
+		if (!_bus.read(LX16A_SERVO_ID_READ, params, 1,_id)) {
 			commandOK = false;
 			return 0;
 		}
@@ -317,7 +318,7 @@ public:
 	 */
 	bool readIsMotorMode() {
 		uint8_t params[1];
-		if (!read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1)) {
+		if (!_bus.read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1,_id)) {
 			commandOK = false;
 			return false;
 		}
@@ -328,7 +329,7 @@ public:
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
-		bool ok = write(LX16A_SERVO_ID_WRITE, params, 1);
+		bool ok = _bus.write(LX16A_SERVO_ID_WRITE, params, 1,_id);
 		if (ok)
 			_id = id;
 		commandOK = ok;
@@ -337,7 +338,7 @@ public:
 	// temp_read returns the servo temperature in centigrade
 	uint8_t temp() {
 		uint8_t params[1];
-		if (!read(LX16A_SERVO_TEMP_READ, params, 1)) {
+		if (!_bus.read(LX16A_SERVO_TEMP_READ, params, 1,_id)) {
 			commandOK = false;
 			return 0;
 		}
@@ -348,7 +349,7 @@ public:
 	// vin_read returns the servo input voltage in millivolts
 	uint16_t vin() {
 		uint8_t params[2];
-		if (!read(LX16A_SERVO_VIN_READ, params, 2)) {
+		if (!_bus.read(LX16A_SERVO_VIN_READ, params, 2,_id)) {
 			commandOK = false;
 			return 0;
 		}
