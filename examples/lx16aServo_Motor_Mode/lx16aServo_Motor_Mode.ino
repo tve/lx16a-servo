@@ -24,8 +24,8 @@ void loop() {
 		Serial.println("Voltage = " + String(servo.vin()));
 		Serial.println("Temp = " + String(servo.temp()));
 		Serial.println("ID  = " + String(servo.id_read()));
-
 		delay(500);
 	}
-
+	servo.move_time(0, 500);
+	delay(5000);
 }

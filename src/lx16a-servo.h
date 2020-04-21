@@ -82,6 +82,8 @@ class LX16AServo {
 private:
 	bool commandOK = true;
 	int16_t lastKnownGoodPosition = 0;
+	bool isMotorMode = false;
+	bool isInitialized = false;
 public:
 	LX16AServo(LX16ABus &bus, int id) :
 			_bus(bus), _id(id), _debug(false) {
@@ -94,7 +96,14 @@ public:
 	bool isCommandOk() {
 		return commandOK;
 	}
-
+	void initialize() {
+		if (isInitialized) {
+			return;
+		}
+		isInitialized = true;
+		motor_mode(0);
+		pos_read();
+	}
 	// write a command with the provided parameters
 	// returns true if the command was written without conflict onto the bus
 	bool write(uint8_t cmd, const uint8_t *params, int param_cnt, uint8_t MYID =
@@ -116,6 +125,9 @@ public:
 	 angle to parameter angle at uniform speed within param
 	 */
 	void move_time(uint16_t angle, uint16_t time) {
+		initialize();
+		if (isMotorMode)
+			motor_mode(0);
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
@@ -140,6 +152,9 @@ public:
 	 , then the servo will be rotate
 	 */
 	void move_time_and_wait_for_sync(uint16_t angle, uint16_t time) {
+		initialize();
+		if (isMotorMode)
+			motor_mode(0);
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
@@ -152,6 +167,9 @@ public:
 	 point 3
 	 */
 	void move_sync_start() {
+		initialize();
+		if (isMotorMode)
+			motor_mode(0);
 		uint8_t params[1];
 		commandOK = write(LX16A_SERVO_MOVE_START, params, 1,
 		LX16A_BROADCAST_ID);
@@ -243,9 +261,12 @@ public:
 	 command packet.
 	 */
 	void motor_mode(int16_t speed) {
-		uint8_t params[] = { (uint8_t) (speed == 0 ? 0 : 1), 0, (uint8_t) speed,
-				(uint8_t) (speed >> 8) };
+		bool isMotorMode_tmp = speed != 0;
+		uint8_t params[] = { (uint8_t) (isMotorMode_tmp ? 1 : 0), 0,
+				(uint8_t) speed, (uint8_t) (speed >> 8) };
 		commandOK = write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4);
+		if (commandOK)
+			isMotorMode = isMotorMode_tmp;
 	}
 
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
@@ -287,7 +308,23 @@ public:
 		return params[0];
 
 	}
-
+	/**
+	 * Command name: SERVO_OR_MOTOR_MODE_READ
+	 Command value: 30 Length: 3
+	 Read the relative values of the servo, for the details of the command package
+	 that the servo returns to host computer, please refer to the description of Table
+	 4 below.
+	 */
+	bool readIsMotorMode() {
+		uint8_t params[1];
+		if (!read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1)) {
+			commandOK = false;
+			return false;
+		}
+		commandOK = true;
+		isMotorMode = params[0] == 1;
+		return isMotorMode;
+	}
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };

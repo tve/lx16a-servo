@@ -17,13 +17,14 @@ void loop() {
 		uint16_t angle = i * 2400;
 
 		do {
-			servo.move_time(angle, 0);
+			servo.move_time(angle, 500);
 		} while (!servo.isCommandOk());
 		Serial.printf("Move to %d -> %s\n", angle,
 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
 		Serial.println("Voltage = " + String(servo.vin()));
 		Serial.println("Temp = " + String(servo.temp()));
 		Serial.println("ID  = " + String(servo.id_read()));
+		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
 
 		delay(200);
 
