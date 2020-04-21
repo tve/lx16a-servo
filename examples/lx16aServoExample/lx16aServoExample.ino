@@ -10,7 +10,7 @@ void setup(){
 void loop(){
 	for (int i=0;i<10;i++){
 		int16_t pos=0 ;
-		pos = servo.pos_read(&pos);
+		pos = servo.pos_read();
 
 		Serial.printf("Position at %d -> %s\n", pos, servo.isCommandOk()?"OK":"ERR");
 

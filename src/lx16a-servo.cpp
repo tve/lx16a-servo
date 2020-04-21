@@ -13,11 +13,13 @@ bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt) {
 	buf[2] = _id;
 	buf[3] = buflen - 3;
 	buf[4] = cmd;
-	for (int i = 0; i < param_cnt; i++)
+	for (int i = 0; i < param_cnt; i++){
 		buf[5 + i] = params[i];
+	}
 	uint8_t cksum = 0;
-	for (int i = 2; i < buflen - 1; i++)
+	for (int i = 2; i < buflen - 1; i++){
 		cksum += buf[i];
+	}
 	buf[buflen - 1] = ~cksum;
 
 //	if (_debug) {

@@ -104,7 +104,7 @@ public:
 	}
 
 	// pos_read returns the servo position in centi-degrees (0..24000)
-	int16_t pos_read(int16_t * angle) {
+	int16_t pos_read() {
 		uint8_t params[2];
 		if (!read(28, params, sizeof(params))){
 			commandOK=  false;
