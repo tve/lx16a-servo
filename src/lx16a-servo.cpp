@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <lx16a-servo.h>
 
 // write a command with the provided parameters
@@ -21,12 +20,12 @@ bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt) {
 		cksum += buf[i];
 	buf[buflen - 1] = ~cksum;
 
-	if (_debug) {
-		printf("SND: ");
-		for (int i = 0; i < buflen; i++)
-			printf(" 0x%02x", buf[i]);
-		printf("\n");
-	}
+//	if (_debug) {
+//		printf("SND: ");
+//		for (int i = 0; i < buflen; i++)
+//			printf(" 0x%02x", buf[i]);
+//		printf("\n");
+//	}
 
 	// clear input buffer
 	while (_bus.available())
@@ -40,24 +39,24 @@ bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt) {
 	uint32_t tout = _bus.time(buflen) + 2; // 2ms margin
 	int got = 0;
 	bool ok = true;
-	if (_debug)
-		printf("RCV: ");
+//	if (_debug)
+//		printf("RCV: ");
 	while (got < buflen && millis() - t0 < tout) {
 		if (_bus.available()) {
 			int ch = _bus.read();
-			if (_debug)
-				printf(" 0x%02x", ch);
+//			if (_debug)
+//				printf(" 0x%02x", ch);
 			if (ch != buf[got])
 				ok = false;
 			got++;
 		}
 	}
-	if (_debug) {
-		if (ok)
-			printf(" OK\n");
-		else
-			printf(" ERR\n");
-	}
+//	if (_debug) {
+//		if (ok)
+//			printf(" OK\n");
+//		else
+//			printf(" ERR\n");
+//	}
 	return ok;
 }
 
@@ -74,65 +73,65 @@ bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
 	uint32_t tout = _bus.time(param_len + 6) + 20; // 20ms for the servo to think
 	int got = 0;
 	uint8_t sum = 0;
-	if (_debug)
-		printf("RCV: ");
+//	if (_debug)
+//		printf("RCV: ");
 	int len = 7; // minimum length
 	while (got < len && millis() - t0 < tout) {
 		if (_bus.available()) {
 			int ch = _bus.read();
-			if (_debug)
-				printf(" 0x%02x", ch);
+//			if (_debug)
+//				printf(" 0x%02x", ch);
 			switch (got) {
 			case 0:
 			case 1:
 				if (ch != 0x55) {
-					if (_debug)
-						printf(" ERR (hdr)\n");
+//					if (_debug)
+//						printf(" ERR (hdr)\n");
 					return false;
 				}
 				break;
 			case 2:
 				if (ch != _id && _id != 0xfe) {
-					if (_debug)
-						printf(" ERR (id)\n");
+//					if (_debug)
+//						printf(" ERR (id)\n");
 					return false;
 				}
 				break;
 			case 3:
 				if (ch < 3 || ch > 7) {
-					if (_debug)
-						printf(" ERR (len)\n");
+//					if (_debug)
+//						printf(" ERR (len)\n");
 					return false;
 				}
 				len = ch + 3;
 				if (len > param_len + 6) {
-					if (_debug)
-						printf(" ERR (param_len)\n");
+//					if (_debug)
+//						printf(" ERR (param_len)\n");
 					return false;
 				}
 				break;
 			case 4:
 				if (ch != cmd) {
-					if (_debug)
-						printf(" ERR (cmd)\n");
+//					if (_debug)
+//						printf(" ERR (cmd)\n");
 					return false;
 				}
 				break;
 			default:
 				if (got == len - 1) {
 					if ((uint8_t) ch == (uint8_t) ~sum) {
-						if (_debug)
-							printf(" OK\n");
+//						if (_debug)
+//							printf(" OK\n");
 						return true;
 					} else {
-						if (_debug)
-							printf(" ERR (cksum!=%02x)\n", ~sum);
+//						if (_debug)
+//							printf(" ERR (cksum!=%02x)\n", ~sum);
 						return false;
 					}
 				}
 				if (got - 5 > param_len) {
-					if (_debug)
-						printf(" ERR (cksum)\n");
+//					if (_debug)
+//						printf(" ERR (cksum)\n");
 					return false;
 				}
 				params[got - 5] = ch;
@@ -142,7 +141,7 @@ bool LX16AServo::read(uint8_t cmd, uint8_t *params, int param_len) {
 			got++;
 		}
 	}
-	if (_debug)
-		printf(" TIMEOUT\n");
+//	if (_debug)
+//		printf(" TIMEOUT\n");
 	return false;
 }
