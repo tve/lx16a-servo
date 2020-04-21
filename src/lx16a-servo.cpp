@@ -3,8 +3,9 @@
 // write a command with the provided parameters
 // returns true if the command was written without conflict onto the bus
 bool LX16AServo::write(uint8_t cmd, const uint8_t *params, int param_cnt) {
-	if (param_cnt < 0 || param_cnt > 4)
+	if (param_cnt < 0 || param_cnt > 4){
 		return false;
+	}
 	// prepare packet in a buffer
 	int buflen = 6 + param_cnt;
 	uint8_t buf[buflen];
