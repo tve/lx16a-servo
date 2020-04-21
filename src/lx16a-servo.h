@@ -211,7 +211,7 @@ public:
 	void disableAll() {
 		uint8_t params[] = { 0 };
 		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1,
-				LX16A_BROADCAST_ID);
+		LX16A_BROADCAST_ID);
 	}
 	/**
 	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
@@ -224,11 +224,25 @@ public:
 	void enableAll() {
 		uint8_t params[] = { 1 };
 		commandOK = write(LX16A_SERVO_ID_WRITE, params, 1,
-				LX16A_BROADCAST_ID);
+		LX16A_BROADCAST_ID);
 	}
-	// motor_mode causes the motor to rotate at a fixed speed (-1000..1000) and switches to
-	// position (servo) mode if speed==0
-	void motor_mode(uint16_t speed) {
+	/**
+	 * Command name: SERVO_OR_MOTOR_MODE_WRITE
+	 Command value: 29
+	 Length: 7
+	 Parameter 1: Servo mode, range 0 or 1, 0 for position control mode, 1 for
+	 motor control mode, default 0,
+	 Parameter 2: null value
+	 Parameter 3: lower 8 bits of rotation speed value
+	 Parameter 4: higher 8 bits of rotation speed value. range -1000~1000,
+	 Only in the motor control mode is valid, control the motor speed, the value of
+	 the negative value represents the reverse, positive value represents the
+	 forward rotation. Write mode and speed do not support power-down save.
+	 Note: Since the rotation speed is the “signed short int” type of data, it is forced
+	 to convert the data to convert the data to “unsigned short int “type of data before sending the
+	 command packet.
+	 */
+	void motor_mode(int16_t speed) {
 		uint8_t params[] = { (uint8_t) (speed == 0 ? 0 : 1), 0, (uint8_t) speed,
 				(uint8_t) (speed >> 8) };
 		commandOK = write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4);
