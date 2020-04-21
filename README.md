@@ -50,18 +50,3 @@ loop() {
     delay(2000);
 }
 ```
-
-## High-level methods
-
-The library implements a number of high-level functions which correspond to the lx16-a commands. For
-example:
-
-```
-// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
-bool angle_adjust(int16_t angle);
-
-// temp_read returns the servo temperature in centigrade
-bool temp(uint8_t &temp);
-```
-Not all commands have been implemented, but it's easy to add any that are needed and missing.
-See `src/LC16AServo.h`.
