@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <LX16AServo.h>
+#include <lx16a-servo.h>
 
 // write a command with the provided parameters
 // returns true if the command was written without conflict onto the bus
