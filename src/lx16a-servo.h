@@ -73,7 +73,7 @@ public:
 	void write(const uint8_t *buf, int buflen) {
 		_port->write(buf, buflen);
 	}
-	int retry = 5;
+	int retry = 3;
 	void setRetryCount(int count){
 		retry = count;
 	}
@@ -98,8 +98,6 @@ public:
 				bool ok = write_no_retry(cmd, params, param_cnt, MYID);
 				if (ok)
 					return true;
-				delay(2);
-
 			}
 		}
 		return false;
@@ -115,7 +113,6 @@ public:
 				bool ok = read_no_retry(cmd, params, param_len, MYID);
 				if (ok)
 					return true;
-				delay(2);
 			}
 		}
 		return false;
@@ -169,9 +166,9 @@ public:
 	 When the command arrives at the servo, it will stop running
 	 This is sent to all servos at once
 	 */
-	bool stopAll() {
+	void stopAll() {
 		uint8_t params[1];
-		return write(LX16A_SERVO_MOVE_STOP, params, 1,
+		write(LX16A_SERVO_MOVE_STOP, params, 1,
 		LX16A_BROADCAST_ID);
 	}
 };
