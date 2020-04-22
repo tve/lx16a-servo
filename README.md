@@ -2,7 +2,7 @@
 
 Simple Arduino library to operate LX-16A and LX-15D serial servos.
 
-This library sends simple commands to LewanSoul LX-16A  and Hiwonder LX-15Dserial bus servos.
+This library sends simple commands to LewanSoul LX-16A  and Hiwonder LX-15D serial bus servos.
 It is designed for the Arduino framework and uses a single pin to interface to the servos
 as opposed to the more common 3-pin configuration (TX, RX, direction).
 
