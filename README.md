@@ -28,40 +28,33 @@ LX16AServo servo(servoBus, 1);
 
 Initialize the bus to use Serial1 on pin 33:
 ```
-servoBus.begin(Serial1, 33);
+servoBus.begin(Serial1);
 ```
 
 Step servo through its 240 degrees range, 10% at a time:
 ```
-int n = 0;
-loop() {
-    uint16_t angle = (n%11) * 100;
+	for (int i = 0; i < 10; i++) {
+		int16_t pos = 0;
+		pos = servo.pos_read();
+		Serial.printf("\n\nPosition at %d -> %s\n", pos,
+				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
 
-    uint8_t params[] = { (uint8_t)angle, (uint8_t)(angle>>8), 500&0xff, 500>>8 };
-    bool ok = servo.write(1, params, sizeof(params));
-    printf("Move to %d -> %s\n", angle, ok?"OK":"ERR");
+		uint16_t angle = i * 2400;
 
-    delay(10);
+		do {
+			servo.move_time(angle, 500);
+		} while (!servo.isCommandOk());
+		Serial.printf("Move to %d -> %s\n", angle,
+				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
+		Serial.println("Voltage = " + String(servo.vin()));
+		Serial.println("Temp = " + String(servo.temp()));
+		Serial.println("ID  = " + String(servo.id_read()));
+		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
 
-    ok = servo.read(2, params, 4);
-    printf("Position at %d -> %s\n", params[0]|(params[1]<<8), ok?"OK":"ERR");
+		delay(200);
 
-    n++;
-    delay(2000);
-}
+		//servo.stopAll();
+		delay(1800);
+
+	}
 ```
-
-## High-level methods
-
-The library implements a number of high-level functions which correspond to the lx16-a commands. For
-example:
-
-```
-// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
-bool angle_adjust(int16_t angle);
-
-// temp_read returns the servo temperature in centigrade
-bool temp(uint8_t &temp);
-```
-Not all commands have been implemented, but it's easy to add any that are needed and missing.
-See `src/LC16AServo.h`.
