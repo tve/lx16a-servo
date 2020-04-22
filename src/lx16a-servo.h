@@ -187,11 +187,11 @@ private:
 	bool isMotorMode = false;
 	bool isInitialized = false;
 	//private:
-	LX16ABus &_bus;
+	LX16ABus * _bus;
 	uint8_t _id = LX16A_BROADCAST_ID;
 
 public:
-	LX16AServo(LX16ABus &bus, int id) :
+	LX16AServo(LX16ABus * bus, int id) :
 			_bus(bus), _id(id) {
 	}
 
@@ -225,7 +225,7 @@ public:
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4, _id);
+		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4, _id);
 	}
 	/**
 	 * Command name: SERVO_MOVE_TIME_WAIT_WRITE
@@ -252,7 +252,7 @@ public:
 		angle = angle / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
+		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
 				_id);
 	}
 
@@ -263,7 +263,7 @@ public:
 	 */
 	void stop() {
 		uint8_t params[1];
-		commandOK = _bus.write(LX16A_SERVO_MOVE_STOP, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_MOVE_STOP, params, 1, _id);
 	}
 
 	/**
@@ -276,7 +276,7 @@ public:
 	 */
 	void disable() {
 		uint8_t params[] = { 0 };
-		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
 	}
 	/**
 	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
@@ -288,7 +288,7 @@ public:
 	 */
 	void enable() {
 		uint8_t params[] = { 1 };
-		commandOK = _bus.write(LX16A_SERVO_ID_WRITE, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
 	}
 
 	/**
@@ -311,7 +311,7 @@ public:
 		bool isMotorMode_tmp = speed != 0;
 		uint8_t params[] = { (uint8_t) (isMotorMode_tmp ? 1 : 0), 0,
 				(uint8_t) speed, (uint8_t) (speed >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4, _id);
+		commandOK = _bus->write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4, _id);
 		if (commandOK)
 			isMotorMode = isMotorMode_tmp;
 	}
@@ -319,7 +319,7 @@ public:
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
 	void angle_adjust(int16_t angle) {
 		uint8_t params[] = { (uint8_t) ((int32_t) angle * 125 / 30) };
-		commandOK = _bus.write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1, _id);
 	}
 
 	// angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
@@ -328,26 +328,33 @@ public:
 		max_angle = max_angle / 24;
 		uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
 				(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-		commandOK = _bus.write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
+		commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
 	}
 
 	// pos_read returns the servo position in centi-degrees (0..24000)
 	int16_t pos_read() {
 		uint8_t params[2];
-		if (!_bus.read(LX16A_SERVO_POS_READ, params, 2, _id)) {
+		if (!_bus->read(LX16A_SERVO_POS_READ, params, 2, _id)) {
 			commandOK = false;
-			return lastKnownGoodPosition;
+			return pos_read_cached();
 		}
 		commandOK = true;
 		lastKnownGoodPosition = ((int16_t) params[0]
 				| ((int16_t) params[1] << 8)) * 24;
+		return pos_read_cached();
+	}
+	/**
+	 * Get the cached position from the most recent read
+	 */
+	int16_t pos_read_cached(){
 		return lastKnownGoodPosition;
 	}
+
 
 	// id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
 	uint8_t id_read() {
 		uint8_t params[1];
-		if (!_bus.read(LX16A_SERVO_ID_READ, params, 1, _id)) {
+		if (!_bus->read(LX16A_SERVO_ID_READ, params, 1, _id)) {
 			commandOK = false;
 			return 0;
 		}
@@ -364,7 +371,7 @@ public:
 	 */
 	bool readIsMotorMode() {
 		uint8_t params[1];
-		if (!_bus.read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1, _id)) {
+		if (!_bus->read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1, _id)) {
 			commandOK = false;
 			return false;
 		}
@@ -375,8 +382,8 @@ public:
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
-		bool ok = _bus.write(LX16A_SERVO_ID_WRITE, params, 1, _id);
-		if (ok)
+		bool ok = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
+		if (ok && _id!=LX16A_BROADCAST_ID)
 			_id = id;
 		commandOK = ok;
 	}
@@ -384,7 +391,7 @@ public:
 	// temp_read returns the servo temperature in centigrade
 	uint8_t temp() {
 		uint8_t params[1];
-		if (!_bus.read(LX16A_SERVO_TEMP_READ, params, 1, _id)) {
+		if (!_bus->read(LX16A_SERVO_TEMP_READ, params, 1, _id)) {
 			commandOK = false;
 			return 0;
 		}
@@ -395,7 +402,7 @@ public:
 	// vin_read returns the servo input voltage in millivolts
 	uint16_t vin() {
 		uint8_t params[2];
-		if (!_bus.read(LX16A_SERVO_VIN_READ, params, 2, _id)) {
+		if (!_bus->read(LX16A_SERVO_VIN_READ, params, 2, _id)) {
 			commandOK = false;
 			return 0;
 		}

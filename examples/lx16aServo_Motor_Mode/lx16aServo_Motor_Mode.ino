@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <lx16a-servo.h>
 LX16ABus servoBus;
-LX16AServo servo(servoBus, 1);
+LX16AServo servo(&servoBus, 1);
 void setup() {
 	servoBus.begin(&Serial1);
 	Serial.begin(115200);

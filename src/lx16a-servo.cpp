@@ -59,7 +59,7 @@ bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
 
     // read back the expected response
     uint32_t t0 = millis();
-    uint32_t tout = time(param_len+6) + 20; // 20ms for the servo to think
+    uint32_t tout = time(param_len+6) + 10; // 20ms for the servo to think
     int got = 0;
     uint8_t sum = 0;
     if (_debug) Serial.printf("RCV: ");
