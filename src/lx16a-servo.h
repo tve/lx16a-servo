@@ -31,9 +31,16 @@
 #define LX16A_SERVO_LED_ERROR_READ 36
 
 class LX16ABus {
+	bool _debug;
 public:
 
-	LX16ABus() {
+	LX16ABus() : _debug(false){
+	}
+
+	// debug enables/disables debug printf's for this servo
+	void debug(bool on) {
+		_debug = on;
+
 	}
 	void begin(HardwareSerial * port, int baud = 115200) {
 		_port = port;
@@ -179,15 +186,15 @@ private:
 	int16_t lastKnownGoodPosition = 0;
 	bool isMotorMode = false;
 	bool isInitialized = false;
+	//private:
+	LX16ABus &_bus;
+	uint8_t _id = LX16A_BROADCAST_ID;
+
 public:
 	LX16AServo(LX16ABus &bus, int id) :
-			_bus(bus), _id(id), _debug(false) {
+			_bus(bus), _id(id) {
 	}
 
-	// debug enables/disables debug printf's for this servo
-	void debug(bool on) {
-		_debug = on;
-	}
 	bool isCommandOk() {
 		return commandOK;
 	}
@@ -396,8 +403,5 @@ public:
 		return params[0] | ((uint16_t) params[1] << 8);
 	}
 
-//private:
-	LX16ABus &_bus;
-	uint8_t _id = LX16A_BROADCAST_ID;
-	bool _debug;
+
 };
