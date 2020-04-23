@@ -11,6 +11,25 @@ It's very simple!
 
 # Electrical
 
+The LX-* servos all use a 3.3v driven bi directional asynchronus serial. It is similar to UART, but uses both signels on one pin. Because of this, the Master TX line has to be connected only while transmitting. THe correct way to do this is a Buffer chip. 
+
+https://www.digikey.com/product-detail/en/texas-instruments/SN74HC126N/296-8221-5-ND
+
+This library uses an IO pin passed to the begin() method toi flag when the master is transmitting on the bus. When the flag is desserted, then the bus is freed for a motor to transmit, and the Masters UARD TX line should be held in high-impedance.
+
+```
+MCU RX -> Direct Connection -> LX-16a Serial Pin
+MCU TX -> 74HC126 A   
+MCU Flag GPIO -> 74HC126 OE
+74HC126 Y -> LX-16a Serial Pin
+6v-7.5v ->  LX-16a Power (center) pin
+GND     ->  LX-16a GND Pin
+```
+
+
+### Quick and dirty/ Hacky one motor setup
+This wireing configuration will get you up and running fast. You will get a few failed commands and errored bytes using this method. 
+
 ```
 MCU RX -> Direct Connection -> LX-16a Serial Pin
 MCU TX -> 1K Ohm resistor   -> LX-16a Serial Pin
