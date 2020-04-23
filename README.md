@@ -11,24 +11,26 @@ It's very simple!
 
 # Electrical
 
-The LX-* servos all use a 3.3v driven bi directional asynchronus serial. It is similar to UART, but uses both signels on one pin. Because of this, the Master TX line has to be connected only while transmitting. THe correct way to do this is a Buffer chip. 
+The LX-* servos all use a 3.3v driven bi directional asynchronus serial. It is similar to UART, but uses both signals on one pin. Because of this, the Master TX line has to be connected only while transmitting. The correct way to do this is a buffer chip 74HC126. 
 
 https://www.digikey.com/product-detail/en/texas-instruments/SN74HC126N/296-8221-5-ND
 
-This library uses an IO pin passed to the begin() method toi flag when the master is transmitting on the bus. When the flag is desserted, then the bus is freed for a motor to transmit, and the Masters UARD TX line should be held in high-impedance.
+This library uses an IO pin passed to the begin() method to flag when the master is transmitting on the bus. When the flag is de-asserted, then the bus is freed for a motor to transmit, with the Masters UART TX line held in high-impedance.
 
 ```
-MCU RX -> Direct Connection -> LX-16a Serial Pin
+MCU RX -> Direct Connection -> LX-* Serial Pin
 MCU TX -> 74HC126 A   
 MCU Flag GPIO -> 74HC126 OE
-74HC126 Y -> LX-16a Serial Pin
-6v-7.5v ->  LX-16a Power (center) pin
-GND     ->  LX-16a GND Pin
+74HC126 Y -> LX-* Serial Pin
+6v-7.5v ->  LX-* Power (center) pin
+GND     ->  LX-* GND Pin
 ```
+
+The MCU Rx pin always listens,a nd hears its own bytes comming in. This library clears out the incomming bytes and will hang if it could not hear itself talking. 
 
 
 ### Quick and dirty/ Hacky one motor setup
-This wireing configuration will get you up and running fast. You will get a few failed commands and errored bytes using this method. 
+This wireing configuration will get you up and running fast. You will get a few failed commands and errored bytes using this method. It is usefull to quickly test a servo on a new system.  
 
 ```
 MCU RX -> Direct Connection -> LX-16a Serial Pin
@@ -42,7 +44,7 @@ GND     ->  LX-16a GND Pin
 Allocate a bus object to represent the serial line, and a servo object for the first servo:
 ```
 LX16ABus servoBus;
-LX16AServo servo(servoBus, 1);
+LX16AServo servo(servoBus, 1);// Motor ID 1
 ```
 
 Initialize the bus to use Serial1:
