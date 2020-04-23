@@ -3,7 +3,9 @@
 LX16ABus servoBus;
 LX16AServo servo(&servoBus, 1);
 void setup() {
-	servoBus.begin(&Serial1,2);// use pin 2 as the TX flag for buffer
+	servoBus.begin(&Serial1,
+			1,// on TX pin 1
+			2);// use pin 2 as the TX flag for buffer
 	Serial.begin(115200);
 	servoBus.debug(true);
 	Serial.println("Beginning Servo Example");
@@ -12,6 +14,7 @@ void setup() {
 void loop() {
 	int divisor =4;
 	for (int i = 0; i < 1000/divisor; i++) {
+		long start = millis();
 		uint16_t angle = i * 24*divisor;
 		int16_t pos = 0;
 		pos = servo.pos_read();
@@ -27,8 +30,13 @@ void loop() {
 //		Serial.println("Temp = " + String(servo.temp()));
 //		Serial.println("ID  = " + String(servo.id_read()));
 //		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
-
-		delay(10*divisor);
+		long took = millis()-start;
+		long time = (10*divisor)-took;
+		if(time>0)
+			delay(time);
+		else{
+			Serial.println("Real Time broken, took: "+String(took));
+		}
 	}
 
 	servo.move_time(0, 3000);

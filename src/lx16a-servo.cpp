@@ -29,6 +29,7 @@ bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
 	// send command packet
 	uint32_t t0 = millis();
 	write(buf, buflen);
+	delayMicroseconds(timeus(1));
 	// expect to read back command by virtue of single-pin loop-back
 	uint32_t tout = time(buflen) + 4; // 2ms margin
 	int got = 0;

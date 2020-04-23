@@ -3,7 +3,9 @@
 LX16ABus servoBus;
 LX16AServo servo(&servoBus, 1);
 void setup() {
-	servoBus.begin(&Serial1,2);// use pin 2 as the TX flag for buffer
+	servoBus.begin(&Serial1,
+			1,// on TX pin 1
+			2);// use pin 2 as the TX flag for buffer
 	Serial.begin(115200);
 }
 

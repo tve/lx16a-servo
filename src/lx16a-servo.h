@@ -33,6 +33,7 @@
 class LX16ABus {
 	bool _debug;
 	int myTXFlagGPIO = -1;
+	int myTXPin=-1;
 	void setTXFlag(int flag) {
 		myTXFlagGPIO = flag;
 		if (myTXFlagGPIO >= 0) {
@@ -51,28 +52,27 @@ public:
 		_debug = on;
 
 	}
-	void begin(HardwareSerial * port, int TXFlagGPIO = -1) {
-		_port = port;
-		port->begin(_baud, SERIAL_8N1);
-		delay(3);
-		while (port->available())
-			port->read();
-		setTXFlag(TXFlagGPIO);
-	}
 
-	void beginOnPin(HardwareSerial * port, int pin, int TXFlagGPIO = -1) {
+	void begin(HardwareSerial * port, int tXpin, int TXFlagGPIO = -1) {
 		_port = port;
+		myTXPin=tXpin;
 #if defined ARDUINO_ARCH_ESP32
-        port->begin(baud, SERIAL_8N1, pin, pin);
-        pinMode(pin, OUTPUT|PULLUP|OPEN_DRAIN);
-#else
+        port->begin(_baud, SERIAL_8N1,myTXPin,myTXPin);
+        pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
+#elif defined(CORE_TEENSY)
+        pinMode(myTXPin, OUTPUT_OPENDRAIN);
 		port->begin(_baud, SERIAL_8N1);
-		pinMode(pin, OUTPUT_OPENDRAIN);
+		port->setTX(myTXPin, true);
+
+#else
+		pinMode(myTXPin, OUTPUT_OPENDRAIN);
+		port->begin(_baud, SERIAL_8N1);
 #endif
 		delay(3);
 		while (port->available())
 			port->read();
 		setTXFlag(TXFlagGPIO);
+
 	}
 
 	// time returns the number of ms to TX/RX n characters
@@ -93,8 +93,18 @@ public:
 		if (myTXFlagGPIO >= 0) {
 			digitalWrite(myTXFlagGPIO, 1);
 		}
+#if defined ARDUINO_ARCH_ESP32
+		pinMode(myTXPin, OUTPUT);
+#elif defined(CORE_TEENSY)
+		_port->setTX(myTXPin, false);
+#endif
 		_port->write(buf, buflen);
 		_port->flush();
+#if defined ARDUINO_ARCH_ESP32
+		pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
+#elif defined(CORE_TEENSY)
+		_port->setTX(myTXPin, true);
+#endif
 		if (myTXFlagGPIO >= 0) {
 			digitalWrite(myTXFlagGPIO, 0);
 		}

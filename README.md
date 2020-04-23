@@ -1,4 +1,4 @@
-# LX-16A, LX-224 and LX-15D Servo Library
+Direct Connection# LX-16A, LX-224 and LX-15D Servo Library
 
 Simple Arduino library to operate LX-16A, LX-224 and LX-15D serial servos.
 
