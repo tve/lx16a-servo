@@ -28,8 +28,19 @@ GND     ->  LX-* GND Pin
 
 The MCU Rx pin always listens,a nd hears its own bytes comming in. This library clears out the incomming bytes and will hang if it could not hear itself talking. 
 
+### ESP32 and Teensy
 
-### Quick and dirty/ Hacky one motor setup
+The esp32 and the Teensy microcontrollers have the ability to run the serial Tx in Open Drain mode. THi is detected by the library and done automatically. This means the pins for tx and rx can be connected together and used to talk to the motors without bus conflicts. 
+
+```
+MCU RX -> Direct Connection -> LX-16a Serial Pin
+MCU TX -> Direct Connection   -> LX-16a Serial Pin
+LX-16a Serial Pin -> 1k Ohm resistor -> 3.3v
+6v-7.5v ->  LX-16a Power (center) pin
+GND     ->  LX-16a GND Pin
+```
+### Other Arduino Quick and dirty/ Hacky one motor setup
+
 This wireing configuration will get you up and running fast. You will get a few failed commands and errored bytes using this method. It is usefull to quickly test a servo on a new system.  
 
 ```
@@ -79,3 +90,4 @@ Step servo through its 240 degrees range, 10% at a time:
 
 	}
 ```
+
