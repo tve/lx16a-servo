@@ -30,7 +30,7 @@ The MCU Rx pin always listens,a nd hears its own bytes comming in. This library 
 
 ### ESP32 and Teensy
 
-The esp32 and the Teensy microcontrollers have the ability to run the serial Tx in Open Drain mode. THi is detected by the library and done automatically. This means the pins for tx and rx can be connected together and used to talk to the motors without bus conflicts. 
+The esp32 and the Teensy microcontrollers have the ability to run the serial Tx in Open Drain mode. This is detected by the library and done automatically. This means the pins for tx and rx can be connected together and used to talk to the motors without bus conflicts. 
 
 ```
 MCU RX -> Direct Connection -> LX-16a Serial Pin
