@@ -3,8 +3,10 @@
 LX16ABus servoBus;
 LX16AServo servo(&servoBus, 1);
 void setup() {
-	servoBus.begin(&Serial1);
+	servoBus.begin(&Serial1,2);// use pin 2 as the TX flag for buffer
 	Serial.begin(115200);
+	servoBus.debug(true);
+	Serial.println("Beginning Servo Example");
 }
 
 void loop() {
@@ -21,10 +23,10 @@ void loop() {
 		} while (!servo.isCommandOk());
 		Serial.printf("Move to %d -> %s\n", angle,
 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
-		Serial.println("Voltage = " + String(servo.vin()));
-		Serial.println("Temp = " + String(servo.temp()));
-		Serial.println("ID  = " + String(servo.id_read()));
-		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
+//		Serial.println("Voltage = " + String(servo.vin()));
+//		Serial.println("Temp = " + String(servo.temp()));
+//		Serial.println("ID  = " + String(servo.id_read()));
+//		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
 
 		delay(10*divisor);
 	}

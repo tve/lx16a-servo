@@ -32,9 +32,18 @@
 
 class LX16ABus {
 	bool _debug;
+	int myTXFlagGPIO = -1;
+	void setTXFlag(int flag) {
+		myTXFlagGPIO = flag;
+		if (myTXFlagGPIO >= 0) {
+			pinMode(myTXFlagGPIO, OUTPUT);
+			digitalWrite(myTXFlagGPIO, 0);
+		}
+	}
 public:
-
-	LX16ABus() : _debug(false){
+	bool _deepDebug = false;
+	LX16ABus() :
+			_debug(false) {
 	}
 
 	// debug enables/disables debug printf's for this servo
@@ -42,34 +51,37 @@ public:
 		_debug = on;
 
 	}
-	void begin(HardwareSerial * port, int baud = 115200) {
+	void begin(HardwareSerial * port, int TXFlagGPIO = -1) {
 		_port = port;
-		_baud = baud;
-		port->begin(baud, SERIAL_8N1);
+		port->begin(_baud, SERIAL_8N1);
 		delay(3);
 		while (port->available())
 			port->read();
+		setTXFlag(TXFlagGPIO);
 	}
-	void beginOnPin(HardwareSerial * port, int pin, int baud = 115200) {
+
+	void beginOnPin(HardwareSerial * port, int pin, int TXFlagGPIO = -1) {
 		_port = port;
-		_baud = baud;
 #if defined ARDUINO_ARCH_ESP32
         port->begin(baud, SERIAL_8N1, pin, pin);
         pinMode(pin, OUTPUT|PULLUP|OPEN_DRAIN);
 #else
-		port->begin(baud, SERIAL_8N1);
+		port->begin(_baud, SERIAL_8N1);
 		pinMode(pin, OUTPUT_OPENDRAIN);
 #endif
 		delay(3);
 		while (port->available())
 			port->read();
+		setTXFlag(TXFlagGPIO);
 	}
 
 	// time returns the number of ms to TX/RX n characters
 	uint32_t time(uint8_t n) {
 		return n * 10 * 1000 / _baud; // 10 bits per char
 	}
-
+	uint32_t timeus(uint8_t n) {
+		return n * 10 * 1000000 / _baud; // 10 bits per char
+	}
 	// methods passed through to Serial
 	bool available() {
 		return _port->available();
@@ -78,10 +90,17 @@ public:
 		return _port->read();
 	}
 	void write(const uint8_t *buf, int buflen) {
+		if (myTXFlagGPIO >= 0) {
+			digitalWrite(myTXFlagGPIO, 1);
+		}
 		_port->write(buf, buflen);
+		_port->flush();
+		if (myTXFlagGPIO >= 0) {
+			digitalWrite(myTXFlagGPIO, 0);
+		}
 	}
 	int retry = 3;
-	void setRetryCount(int count){
+	void setRetryCount(int count) {
 		retry = count;
 	}
 	// write a command with the provided parameters
@@ -311,7 +330,8 @@ public:
 		bool isMotorMode_tmp = speed != 0;
 		uint8_t params[] = { (uint8_t) (isMotorMode_tmp ? 1 : 0), 0,
 				(uint8_t) speed, (uint8_t) (speed >> 8) };
-		commandOK = _bus->write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4, _id);
+		commandOK = _bus->write(LX16A_SERVO_OR_MOTOR_MODE_WRITE, params, 4,
+				_id);
 		if (commandOK)
 			isMotorMode = isMotorMode_tmp;
 	}
@@ -319,7 +339,8 @@ public:
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
 	void angle_adjust(int16_t angle) {
 		uint8_t params[] = { (uint8_t) ((int32_t) angle * 125 / 30) };
-		commandOK = _bus->write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1,
+				_id);
 	}
 
 	// angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
@@ -346,15 +367,14 @@ public:
 	/**
 	 * Get the cached position from the most recent read
 	 */
-	int16_t pos_read_cached(){
+	int16_t pos_read_cached() {
 		return lastKnownGoodPosition;
 	}
-
 
 	// id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
 	uint8_t id_read() {
 		uint8_t params[1];
-		if (!_bus->read(LX16A_SERVO_ID_READ, params, 1, _id)) {
+		if (!_bus->read(LX16A_SERVO_ID_READ, params, 1, LX16A_BROADCAST_ID)) {
 			commandOK = false;
 			return 0;
 		}
@@ -370,8 +390,8 @@ public:
 	 4 below.
 	 */
 	bool readIsMotorMode() {
-		uint8_t params[1];
-		if (!_bus->read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 1, _id)) {
+		uint8_t params[4];
+		if (!_bus->read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 4, _id)) {
 			commandOK = false;
 			return false;
 		}
@@ -383,7 +403,7 @@ public:
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
 		bool ok = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
-		if (ok && _id!=LX16A_BROADCAST_ID)
+		if (ok && _id != LX16A_BROADCAST_ID)
 			_id = id;
 		commandOK = ok;
 	}
@@ -409,6 +429,5 @@ public:
 		commandOK = true;
 		return params[0] | ((uint16_t) params[1] << 8);
 	}
-
 
 };

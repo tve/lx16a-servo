@@ -3,7 +3,7 @@
 LX16ABus servoBus;
 LX16AServo servo(&servoBus, LX16A_BROADCAST_ID);// send these commands to any motor on the bus
 void setup() {
-	servoBus.begin(&Serial1);
+	servoBus.begin(&Serial1,2);// use pin 2 as the TX flag for buffer
 	Serial.begin(115200);
 }
 
