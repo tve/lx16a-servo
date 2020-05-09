@@ -26,10 +26,10 @@ void loop() {
 		} while (!servo.isCommandOk());
 		Serial.printf("Move to %d -> %s\n", angle,
 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
-//		Serial.println("Voltage = " + String(servo.vin()));
-//		Serial.println("Temp = " + String(servo.temp()));
-//		Serial.println("ID  = " + String(servo.id_read()));
-//		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
+		Serial.println("Voltage = " + String(servo.vin()));
+		Serial.println("Temp = " + String(servo.temp()));
+		Serial.println("ID  = " + String(servo.id_read()));
+		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
 		long took = millis()-start;
 		long time = (10*divisor)-took;
 		if(time>0)

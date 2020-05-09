@@ -31,9 +31,11 @@
 #define LX16A_SERVO_LED_ERROR_READ 36
 
 class LX16ABus {
+private:
 	bool _debug;
 	int myTXFlagGPIO = -1;
 	int myTXPin=-1;
+	int lastCommand=0;
 	void setTXFlag(int flag) {
 		myTXFlagGPIO = flag;
 		if (myTXFlagGPIO >= 0) {
@@ -41,6 +43,7 @@ class LX16ABus {
 			digitalWrite(myTXFlagGPIO, 0);
 		}
 	}
+
 public:
 	bool _deepDebug = false;
 	LX16ABus() :
@@ -75,6 +78,7 @@ public:
 
 	}
 
+
 	// time returns the number of ms to TX/RX n characters
 	uint32_t time(uint8_t n) {
 		return n * 10 * 1000 / _baud; // 10 bits per char
@@ -98,16 +102,23 @@ public:
 #elif defined(CORE_TEENSY)
 		_port->setTX(myTXPin, false);
 #endif
-		_port->write(buf, buflen);
-		_port->flush();
+//		_port->write(buf, buflen);
+//		_port->flush();
+		delayMicroseconds(10);
+		for(int i=0;i<buflen;i++){
+			_port->write(buf[i]);
+			_port->flush();
+		}
+		if (myTXFlagGPIO >= 0) {
+			digitalWrite(myTXFlagGPIO, 0);
+		}
 #if defined ARDUINO_ARCH_ESP32
 		pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
 #elif defined(CORE_TEENSY)
 		_port->setTX(myTXPin, true);
 #endif
-		if (myTXFlagGPIO >= 0) {
-			digitalWrite(myTXFlagGPIO, 0);
-		}
+
+
 	}
 	int retry = 3;
 	void setRetryCount(int count) {
@@ -122,7 +133,10 @@ public:
 	// returns true if everything checks out correctly.
 	bool read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
 			uint8_t MYID);
-
+	// read sends a command to the servo and reads back the response into the params buffer.
+	// returns true if everything checks out correctly.
+	bool rcv(uint8_t cmd, uint8_t *params, int param_len,
+			uint8_t MYID);
 	// write a command with the provided parameters
 	// returns true if the command was written without conflict onto the bus
 	bool write(uint8_t cmd, const uint8_t *params, int param_cnt,
@@ -212,18 +226,45 @@ public:
 class LX16AServo {
 private:
 	bool commandOK = true;
-	int16_t lastKnownGoodPosition = 0;
+	int32_t lastKnownGoodPosition = 0;
 	bool isMotorMode = false;
 	bool isInitialized = false;
 	//private:
 	LX16ABus * _bus;
 	uint8_t _id = LX16A_BROADCAST_ID;
-
+	int32_t staticOffset =0;
+	int32_t maxCentDegrees =240000;
+	int32_t minCentDegrees =0;
 public:
 	LX16AServo(LX16ABus * bus, int id) :
 			_bus(bus), _id(id) {
 	}
+	/**
+	 * Set the current position as a specific angle.
+	 *
+	 * This function will first read the current position, then
+	 * calculate an offset to be applied to all position reads and writes.
+	 * The offset will make convert the current position to the value passed in
+	 *
+	 * This is a function to be called when the motor hits a limit switch
+	 * and load in a specific value when the limit is reached
+	 *
+	 */
+	void calibrate(int32_t currentAngleCentDegrees){
+		int32_t current;
+		do{
+			current=pos_read()-staticOffset;
+		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
+		staticOffset=currentAngleCentDegrees-current;
 
+		readLimits();
+	}
+	int32_t getMinCentDegrees(){
+		return minCentDegrees;
+	}
+	int32_t getMaxCentDegrees(){
+		return maxCentDegrees;
+	}
 	bool isCommandOk() {
 		return commandOK;
 	}
@@ -234,6 +275,19 @@ public:
 		isInitialized = true;
 		motor_mode(0);
 		pos_read();
+		readLimits();
+	}
+
+	void readLimits(){
+		uint8_t params[4];
+		do{
+			if (!_bus->read(LX16A_SERVO_ANGLE_LIMIT_READ, params, 4, _id)) {
+				commandOK = false;
+			}
+			commandOK = true;
+			minCentDegrees= ((params[0] | ((uint16_t) params[1] << 8))*24)+staticOffset;
+			maxCentDegrees= ((params[2] | ((uint16_t) params[3] << 8))*24)+staticOffset;
+		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 	}
 
 	/**
@@ -247,14 +301,19 @@ public:
 	 When the command is sent to servo, the servo will be rotated from current
 	 angle to parameter angle at uniform speed within param
 	 */
-	void move_time(uint16_t angle, uint16_t time) {
+	void move_time(int32_t angle, uint16_t time) {
 		initialize();
+		if(angle> maxCentDegrees)
+			angle=maxCentDegrees;
+		if(angle<minCentDegrees)
+			angle=minCentDegrees;
 		if (isMotorMode)
 			motor_mode(0);
-		angle = angle / 24;
+		angle = (angle-staticOffset) / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
 		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4, _id);
+
 	}
 	/**
 	 * Command name: SERVO_MOVE_TIME_WAIT_WRITE
@@ -274,15 +333,22 @@ public:
 	 ART sent to servo(command value of 11)
 	 , then the servo will be rotate
 	 */
-	void move_time_and_wait_for_sync(uint16_t angle, uint16_t time) {
+	void move_time_and_wait_for_sync(int32_t angle, uint16_t time) {
 		initialize();
+		if(angle> maxCentDegrees)
+			angle=maxCentDegrees;
+		if(angle<minCentDegrees)
+			angle=minCentDegrees;
 		if (isMotorMode)
 			motor_mode(0);
-		angle = angle / 24;
+		angle = (angle-staticOffset) / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
 		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
 				_id);
+//		// this write command has a packet coming back
+//		commandOK = _bus->rcv(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
+//						_id);
 	}
 
 	/**
@@ -305,7 +371,7 @@ public:
 	 */
 	void disable() {
 		uint8_t params[] = { 0 };
-		commandOK = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_LOAD_OR_UNLOAD_WRITE, params, 1, _id);
 	}
 	/**
 	 * Command name: SERVO_LOAD_OR_UNLOAD_WRITE
@@ -317,7 +383,7 @@ public:
 	 */
 	void enable() {
 		uint8_t params[] = { 1 };
-		commandOK = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
+		commandOK = _bus->write(LX16A_SERVO_LOAD_OR_UNLOAD_WRITE, params, 1, _id);
 	}
 
 	/**
@@ -345,39 +411,79 @@ public:
 		if (commandOK)
 			isMotorMode = isMotorMode_tmp;
 	}
-
 	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
-	void angle_adjust(int16_t angle) {
-		uint8_t params[] = { (uint8_t) ((int32_t) angle * 125 / 30) };
+	void angle_offset_save() {
+		uint8_t params[1];
+		_bus-> write(LX16A_SERVO_ANGLE_OFFSET_WRITE, params, 1,
+				_id);
+	}
+	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
+	void angle_offset_adjust(int16_t angle) {
+		int32_t tmp = (int32_t) angle;
+
+		uint8_t params[] = { (uint8_t) tmp};
 		commandOK = _bus->write(LX16A_SERVO_ANGLE_OFFSET_ADJUST, params, 1,
 				_id);
 	}
+	// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
+	int16_t read_angle_offset() {
+		uint8_t params[1];
+		if (!_bus->read(LX16A_SERVO_ANGLE_OFFSET_READ, params, 1, _id)) {
+			commandOK = false;
+			return 0;
+		}
+		commandOK = true;
+		return params[0] ;
+	}
+
 
 	// angle_limit sets the upper and lower position limit in centi-degrees (0..24000)
-	void angle_limit(uint16_t min_angle, uint16_t max_angle) {
-		min_angle = min_angle / 24;
-		max_angle = max_angle / 24;
-		uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
-				(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-		commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
+	void angle_limit(int32_t min_angle_cent_deg, int32_t max_angle_cent_deg) {
+		initialize();
+
+		int32_t min_angle = (min_angle_cent_deg-staticOffset) / 24;
+		if(min_angle<0){
+			Serial.println("ERROR! Minimum of servo "+String(_id)+" can not be below hardware limit");
+			Serial.println("Given the offset, minimum in centDegrees "+String(minCentDegrees));
+			while(1);
+		}
+		int32_t max_angle = (max_angle_cent_deg-staticOffset) / 24;
+		if(max_angle>1000){
+			Serial.println("ERROR! Maximum of servo "+String(_id)+" can not be below hardware limit");
+			Serial.println("Given the offset, maximum in centDegrees "+String(maxCentDegrees));
+			while(1);
+		}
+		if(min_angle<max_angle){
+			do{
+				uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
+						(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
+				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
+			}while(!isCommandOk());// this is a calibration and can not be allowed to fail
+		}else{
+			Serial.println("ERROR! Max of servo "+String(_id)+" must be larger than min");
+			while(1);
+		}
+		minCentDegrees= (min_angle*24)+staticOffset;
+		maxCentDegrees= ((max_angle)*24)+staticOffset;
 	}
 
 	// pos_read returns the servo position in centi-degrees (0..24000)
-	int16_t pos_read() {
+	int32_t pos_read() {
+		initialize();
 		uint8_t params[2];
 		if (!_bus->read(LX16A_SERVO_POS_READ, params, 2, _id)) {
 			commandOK = false;
-			return pos_read_cached();
+			return pos_read_cached()+staticOffset;
 		}
 		commandOK = true;
 		lastKnownGoodPosition = ((int16_t) params[0]
 				| ((int16_t) params[1] << 8)) * 24;
-		return pos_read_cached();
+		return pos_read_cached()+staticOffset;
 	}
 	/**
 	 * Get the cached position from the most recent read
 	 */
-	int16_t pos_read_cached() {
+	int32_t pos_read_cached() {
 		return lastKnownGoodPosition;
 	}
 
@@ -400,6 +506,7 @@ public:
 	 4 below.
 	 */
 	bool readIsMotorMode() {
+
 		uint8_t params[4];
 		if (!_bus->read(LX16A_SERVO_OR_MOTOR_MODE_READ, params, 4, _id)) {
 			commandOK = false;

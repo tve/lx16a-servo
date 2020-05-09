@@ -7,9 +7,11 @@ bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
 		uint8_t MYID) {
 	if (param_cnt < 0 || param_cnt > 4)
 		return false;
+
 	// prepare packet in a buffer
 	int buflen = 6 + param_cnt;
 	uint8_t buf[buflen];
+	uint8_t ret[buflen];
 	buf[0] = 0x55;
 	buf[1] = 0x55;
 	buf[2] = MYID;
@@ -23,9 +25,28 @@ bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
 	buf[buflen - 1] = ~cksum;
 
 // clear input buffer
-	while (available())
-		read();
+	int junkCount = 0;
+	while (available()) {
+		if (junkCount == 0) {
+			if (_debug)
+				Serial.print("\n\t\t[ ");
+		}
+		if (_debug)
+			Serial.print(" " + String(read()) + ", ");
+		else
+			read();
+		delayMicroseconds(timeus(3));
+		junkCount++;
+	}
 
+	if (_debug && junkCount!=0) {
+		Serial.print("]\n ");
+		Serial.println(
+				"\t\t Junk bytes = " + String(junkCount) + " id " + String(MYID)
+						+ " cmd " + String(cmd) + " last cmd "
+						+ String(lastCommand));
+	}
+	lastCommand = cmd;
 	// send command packet
 	uint32_t t0 = millis();
 	write(buf, buflen);
@@ -36,38 +57,39 @@ bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
 	bool ok = true;
 	if (_deepDebug)
 		Serial.printf("RCV: ");
-	while (got < buflen && millis() - t0 < tout) {
+	while ((got < buflen) && ((millis() - t0) < tout)) {
 		if (available()) {
-			int ch = read();
-			if (ch != buf[got]){
-				if (_debug)Serial.println("expected "+String(buf[got])+" got "+String(ch));
+			ret[got] = read();
+			if (ret[got] != buf[got]) {
 				ok = false;
 			}
 			got++;
 		}
 	}
-	if (_debug) {
-		if (!ok){
+	if (got<buflen){
+		ok = false;
 
-			Serial.println("Write ERR expected "+String(buflen)+" got "+String(got));
+	}
+	if (_debug) {
+		if (!ok) {
+			Serial.print("\n\n\tWrote:[ ");
+			for(int i=0;i<buflen;i++){
+				Serial.print(" " + String(buf[i]) + ", ");
+			}
+			Serial.print("] id " + String(MYID)
+					+ " cmd " + String(cmd) + " last cmd "
+					+ String(lastCommand));
+
+			Serial.print("\n\tGot  :[ ");
+			for(int i=0;i<got;i++){
+				Serial.print(" " + String(ret[i]) + ", ");
+			}
+			Serial.print("]\n");
 		}
 	}
 	return ok;
 }
-
-// read sends a command to the servo and reads back the response into the params buffer.
-// returns true if everything checks out correctly.
-bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
-		uint8_t MYID) {
-	// send the read command
-	bool ok = write(cmd, NULL, 0, MYID);
-	if (!ok){
-		if (_debug)
-				Serial.println(
-						"Command of read failed ");
-		//return false;
-	}
-
+bool LX16ABus::rcv(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID) {
 	// read back the expected response
 	uint32_t t0 = millis();
 	uint32_t tout = time(param_len + 6) + 20; // 20ms for the servo to think
@@ -76,7 +98,7 @@ bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
 	if (_deepDebug)
 		Serial.printf("RCV: ");
 	int len = 7; // minimum length
-	while (got < len && millis() - t0 < tout) {
+	while (got < len && ((millis() - t0) < tout)) {
 		if (available()) {
 			int ch = read();
 			if (_deepDebug)
@@ -106,7 +128,10 @@ bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
 				len = ch + 3;
 				if (len > param_len + 6) {
 					if (_debug)
-						Serial.println(" ERR (param_len) got "+String(len)+" expected "+String((param_len + 6)));
+						Serial.println(
+								" ERR (param_len) got " + String(len)
+										+ " expected "
+										+ String((param_len + 6)));
 					return false;
 				}
 				break;
@@ -143,6 +168,23 @@ bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
 	}
 	if (_debug)
 		Serial.println(
-				"Read TIMEOUT Expected " + String(len) + " got " + String(got));
+				"Read TIMEOUT Expected " + String(len) + " got " + String(got)
+						+ " on cmd: " + String(cmd) + " id " + String(MYID));
 	return false;
+}
+// read sends a command to the servo and reads back the response into the params buffer.
+// returns true if everything checks out correctly.
+bool LX16ABus::read_no_retry(uint8_t cmd, uint8_t *params, int param_len,
+		uint8_t MYID) {
+	// send the read command
+	bool ok = write(cmd, NULL, 0, MYID);
+	if (!ok) {
+		if (_debug)
+			Serial.println(
+					"Command of read failed on cmd: " + String(cmd) + " id "
+							+ String(MYID));
+		return false;
+	}
+
+	return rcv(cmd, params, param_len, MYID);
 }

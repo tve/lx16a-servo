@@ -33,7 +33,7 @@ void loop() {
 		servoBus.move_sync_start();
 
 		//if(abs(pos2-pos)>100){
-		Serial.printf("\n\nPosition at %d, %d and %d-> %s\n", pos, pos2, pos3,
+		Serial.printf("\n\nPosition at %d and %d-> %s\n", pos, pos2,
 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
 		Serial.printf("Move to %d -> %s\n", angle,
 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
@@ -61,7 +61,7 @@ void loop() {
 		int16_t pos2 = servo2.pos_read();
 		int16_t pos3 = servo3.pos_read();
 
-		Serial.printf("\n\nPosition at %d, %d and %d\n", pos, pos2, pos3);
+		Serial.printf("\n\nPosition at %d and %d\n", pos, pos2);
 
 		Serial.println("Voltage = " + String(servo.vin()));
 		Serial.println("Temp = " + String(servo.temp()));
