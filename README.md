@@ -55,12 +55,14 @@ GND     ->  LX-16a GND Pin
 Allocate a bus object to represent the serial line, and a servo object for the first servo:
 ```
 LX16ABus servoBus;
-LX16AServo servo(servoBus, 1);// Motor ID 1
+LX16AServo servo(&servoBus, 1);// Motor ID 1
 ```
 
 Initialize the bus to use Serial1:
 ```
-servoBus.begin(Serial1,2);// use pin 2 as the TX flag for buffer
+servoBus.begin(&Serial1,
+			1,// on TX pin 1
+			2);// use pin 2 as the TX flag for buffer
 ```
 
 Step servo through its 240 degrees range, 10% at a time:
