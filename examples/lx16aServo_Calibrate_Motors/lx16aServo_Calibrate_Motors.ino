@@ -64,17 +64,12 @@ void loop() {
 
 		if(HOME){
 			Serial.println("Calibrating 1");
-			servo.calibrate(startingAngles[0]);
+			servo.calibrate(startingAngles[0],-9000,9000);
 			Serial.println("Calibrating 2");
-			servo2.calibrate(startingAngles[1]);
+			servo2.calibrate(startingAngles[1],-2512,10000);
 			Serial.println("Calibrating 3");
-			servo3.calibrate(startingAngles[2]);
-			Serial.println("Limits 1");
-			servo.angle_limit(-9000,9000);
-			Serial.println("Limits 2");
-			servo2.angle_limit(-2512,10000);
-			Serial.println("Limits 3");
-			servo3.angle_limit(-9000,9000);
+			servo3.calibrate(startingAngles[2],-9000,9000);
+
 			Serial.println("Limits read");
 		}
 		Serial.println("Read 1");
