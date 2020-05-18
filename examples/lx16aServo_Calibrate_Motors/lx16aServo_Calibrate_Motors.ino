@@ -9,9 +9,13 @@ bool calibrationDone = false;
 #define HOME_SWITCH_PIN 32
 int divisor = 3;
 void setup() {
+	while(!Serial);
+	delay(1000);
+	Serial.begin(115200);
+	Serial.println("Starting");
 	servoBus.begin(&Serial1, 1, // on TX pin 1
 			2); // use pin 2 as the TX flag for buffer
-	Serial.begin(115200);
+
 	servoBus.retry = 2; // enforce synchronous real time
 	//servoBus.debug(true);
 	Serial.println("Beginning Coordinated Servo Example");
