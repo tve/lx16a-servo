@@ -259,6 +259,7 @@ public:
 		staticOffset=currentAngleCentDegrees-current;
 		readLimits();
 		int32_t min_angle = (min_angle_cent_deg-staticOffset) / 24;
+		int32_t max_angle = (max_angle_cent_deg-staticOffset) / 24;
 		if(min_angle<0){
 			//staticOffset +=-min_angle_cent_deg;
 
@@ -270,10 +271,20 @@ public:
 			Serial.println(" maximum in centDegrees "+String(maxCentDegrees)+" of "+String(max_angle_cent_deg));
 			Serial.println(" error in centDegrees "+String(theoretivalMinError));
 			Serial.println(" current in centDegrees "+String(currentAngleCentDegrees));
+			minCentDegrees= (min_angle*24)+staticOffset;
+			maxCentDegrees= ((max_angle)*24)+staticOffset;
+			do {
+				uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle
+						>> 8),
+
+				(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
+				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
+						4, _id);
+			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 			move_time(theoretivalMinError+2,0);
 			while(1);
 		}
-		int32_t max_angle = (max_angle_cent_deg-staticOffset) / 24;
+
 		if(max_angle>1000){
 			int theoretivalMinError  =  (max_angle_cent_deg-(24000+staticOffset));
 			Serial.println("ERROR! Maximum of servo ID"+String(_id)+" can not be above hardware limit");
@@ -283,6 +294,9 @@ public:
 			Serial.println(" current in centDegrees "+String(currentAngleCentDegrees));
 			Serial.println(" range in centDegrees "+String(maxCentDegrees-minCentDegrees));
 			max_angle=1000;
+			min_angle=0;
+			minCentDegrees= (min_angle*24)+staticOffset;
+			maxCentDegrees= ((max_angle)*24)+staticOffset;
 			do {
 				uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle
 						>> 8),
@@ -291,6 +305,7 @@ public:
 				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
+
 			move_time(currentAngleCentDegrees-theoretivalMinError-2,0);
 			while(1);
 		}
@@ -351,10 +366,14 @@ public:
 	 */
 	void move_time(int32_t angle, uint16_t time) {
 		initialize();
-		if(angle> maxCentDegrees)
+		if(angle> maxCentDegrees){
 			angle=maxCentDegrees;
-		if(angle<minCentDegrees)
+			Serial.println("ERROR Capped set at max "+String(maxCentDegrees));
+		}
+		if(angle<minCentDegrees){
 			angle=minCentDegrees;
+			Serial.println("ERROR Capped set at min "+String(minCentDegrees));
+		}
 		if (isMotorMode)
 			motor_mode(0);
 		angle = (angle-staticOffset) / 24;
@@ -383,10 +402,14 @@ public:
 	 */
 	void move_time_and_wait_for_sync(int32_t angle, uint16_t time) {
 		initialize();
-		if(angle> maxCentDegrees)
+		if(angle> maxCentDegrees){
 			angle=maxCentDegrees;
-		if(angle<minCentDegrees)
+			Serial.println("ERROR Capped set at max "+String(maxCentDegrees));
+		}
+		if(angle<minCentDegrees){
 			angle=minCentDegrees;
+			Serial.println("ERROR Capped set at min "+String(minCentDegrees));
+		}
 		if (isMotorMode)
 			motor_mode(0);
 		angle = (angle-staticOffset) / 24;
