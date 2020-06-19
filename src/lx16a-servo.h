@@ -94,9 +94,7 @@ public:
 		return _port->read();
 	}
 	void write(const uint8_t *buf, int buflen) {
-		if (myTXFlagGPIO >= 0) {
-			digitalWrite(myTXFlagGPIO, 1);
-		}
+
 #if defined ARDUINO_ARCH_ESP32
 		pinMode(myTXPin, OUTPUT);
 #elif defined(CORE_TEENSY)
@@ -109,9 +107,7 @@ public:
 			_port->write(buf[i]);
 			_port->flush();
 		}
-		if (myTXFlagGPIO >= 0) {
-			digitalWrite(myTXFlagGPIO, 0);
-		}
+
 #if defined ARDUINO_ARCH_ESP32
 		pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
 #elif defined(CORE_TEENSY)

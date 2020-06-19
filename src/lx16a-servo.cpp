@@ -49,10 +49,13 @@ bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
 	lastCommand = cmd;
 	// send command packet
 	uint32_t t0 = millis();
+	if (myTXFlagGPIO >= 0) {
+		digitalWrite(myTXFlagGPIO, 1);
+	}
 	write(buf, buflen);
 	delayMicroseconds(timeus(1));
 	// expect to read back command by virtue of single-pin loop-back
-	uint32_t tout = time(buflen) + 4; // 2ms margin
+	uint32_t tout = time(buflen) + 30; // 2ms margin
 	int got = 0;
 	bool ok = true;
 	if (_deepDebug)
@@ -86,6 +89,9 @@ bool LX16ABus::write_no_retry(uint8_t cmd, const uint8_t *params, int param_cnt,
 			}
 			Serial.print("]\n");
 		}
+	}
+	if (myTXFlagGPIO >= 0) {
+		digitalWrite(myTXFlagGPIO, 0);
 	}
 	return ok;
 }
