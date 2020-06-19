@@ -292,7 +292,7 @@ public:
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 			move_time(theoretivalMinError+2,0);
-			while(1);
+			//while(1);
 		}
 
 		if(max_angle>1000){
@@ -317,7 +317,7 @@ public:
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 
 			move_time(currentAngleCentDegrees-theoretivalMinError-2,0);
-			while(1);
+			//while(1);
 		}
 		if(min_angle<max_angle){
 			do{
@@ -327,7 +327,7 @@ public:
 			}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 		}else{
 			Serial.println("ERROR! Max of servo "+String(_id)+" must be larger than min");
-			while(1);
+			//while(1);
 		}
 		minCentDegrees= (min_angle*24)+staticOffset;
 		maxCentDegrees= ((max_angle)*24)+staticOffset;
