@@ -68,7 +68,7 @@ public:
 		port->setTX(myTXPin, true);
 
 #else
-		pinMode(myTXPin, OUTPUT_OPENDRAIN);
+		pinMode(myTXPin, OUTPUT);
 		port->begin(_baud, SERIAL_8N1);
 #endif
 		delay(3);
@@ -220,6 +220,20 @@ public:
 		uint8_t params[1];
 		write(LX16A_SERVO_MOVE_STOP, params, 1,
 		LX16A_BROADCAST_ID);
+	}
+	// id_read returns the ID of the servo, useful if the id is 0xfe, which is broadcast...
+	uint8_t id_read() {
+		uint8_t params[1];
+		if (!read(LX16A_SERVO_ID_READ, params, 1, LX16A_BROADCAST_ID)) {
+			return 0;
+		}
+		return params[0];
+
+	}
+	// id_write sets the id of the servo, updates the object's id if write appears successful
+	void id_write(uint8_t id) {
+		uint8_t params[] = { id };
+		write(LX16A_SERVO_ID_WRITE, params, 1, LX16A_BROADCAST_ID);
 	}
 };
 
@@ -539,6 +553,14 @@ public:
 		return params[0];
 
 	}
+	// id_write sets the id of the servo, updates the object's id if write appears successful
+	void id_write(uint8_t id) {
+		uint8_t params[] = { id };
+		bool ok = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, LX16A_BROADCAST_ID);
+		if (ok && _id != LX16A_BROADCAST_ID)
+			_id = id;
+		commandOK = ok;
+	}
 	/**
 	 * Command name: SERVO_OR_MOTOR_MODE_READ
 	 Command value: 30 Length: 3
@@ -557,14 +579,7 @@ public:
 		isMotorMode = params[0] == 1;
 		return isMotorMode;
 	}
-	// id_write sets the id of the servo, updates the object's id if write appears successful
-	void id_write(uint8_t id) {
-		uint8_t params[] = { id };
-		bool ok = _bus->write(LX16A_SERVO_ID_WRITE, params, 1, _id);
-		if (ok && _id != LX16A_BROADCAST_ID)
-			_id = id;
-		commandOK = ok;
-	}
+
 
 	// temp_read returns the servo temperature in centigrade
 	uint8_t temp() {
