@@ -17,6 +17,14 @@ https://www.digikey.com/product-detail/en/texas-instruments/SN74HC126N/296-8221-
 
 This library uses an IO pin passed to the begin() method to flag when the master is transmitting on the bus. When the flag is de-asserted, then the bus is freed for a motor to transmit, with the Masters UART TX line held in high-impedance.
 
+## Detailed Example instructions
+
+How to Wire up an ItsyBitsy to the LewanSoul Bus motors
+
+Here are detailed instructions for how to wire up the Lewansoul motors using the $0.43 chip linked above. https://github.com/Hephaestus-Arm/HephaestusArm2/blob/0.1.1/electronics.md#2-setting-up-the-board
+
+## Generic instructions
+
 ```
 MCU RX -> Direct Connection -> LX-* Serial Pin
 MCU TX -> 74HC126 A   
