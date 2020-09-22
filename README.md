@@ -5,6 +5,8 @@ Simple Arduino library to operate LX-16A, LX-224 and LX-15D serial servos.
 This library sends simple commands to LewanSoul LX-16A, LX-224  and Hiwonder LX-15D serial bus servos.
 It is designed for the Arduino framework and uses the more common 3-pin configuration (TX, RX, direction).
 
+Using the BusLinker v2.2 IS NOT RECOMMENDED, it is not compatible with this library.
+
 # Electrical
 
 The LX-* servos all use a 3.3v driven bi directional asynchronus serial. It is similar to UART, but uses both signals on one pin. Because of this, the Master TX line has to be connected only while transmitting. The correct way to do this is a buffer chip 74HC126. 
