@@ -360,6 +360,12 @@ public:
 			commandOK = true;
 			minCentDegrees= ((params[0] | ((uint16_t) params[1] << 8))*24)+staticOffset;
 			maxCentDegrees= ((params[2] | ((uint16_t) params[3] << 8))*24)+staticOffset;
+			if(minCentDegrees<maxCentDegrees){
+				maxCentDegrees=9000;
+				minCentDegrees=-9000;
+			}
+
+			Serial.println(" Min set "+String(minCentDegrees)+" max = "+String(maxCentDegrees));
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 	}
 
@@ -600,3 +606,4 @@ public:
 	}
 
 };
+
