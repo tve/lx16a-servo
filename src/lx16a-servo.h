@@ -60,8 +60,8 @@ public:
 		_port = port;
 		myTXPin=tXpin;
 #if defined ARDUINO_ARCH_ESP32
-        port->begin(_baud, SERIAL_8N1,myTXPin,myTXPin);
-        pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
+        port->begin(_baud);
+        //pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
 #elif defined(CORE_TEENSY)
         pinMode(myTXPin, OUTPUT_OPENDRAIN);
 		port->begin(_baud, SERIAL_8N1);
