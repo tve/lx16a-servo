@@ -32,7 +32,6 @@
 
 class LX16ABus {
 private:
-	bool _debug;
 	int myTXFlagGPIO = -1;
 	int myTXPin=-1;
 	int lastCommand=0;
@@ -45,6 +44,8 @@ private:
 	}
 
 public:
+
+	bool _debug;
 	bool _deepDebug = false;
 	LX16ABus() :
 			_debug(false) {
@@ -261,13 +262,17 @@ public:
 	 *
 	 */
 	void calibrate(int32_t currentAngleCentDegrees,int32_t min_angle_cent_deg, int32_t max_angle_cent_deg){
+		if(min_angle_cent_deg>=max_angle_cent_deg){
+			Serial.println("Min can not be greater than max for  "+String(_id)+" halting");
+			while(1);
+		}
 		int32_t current;
 		initialize();
 		do{
 			current=pos_read()-staticOffset;
+			Serial.println("Calibration read = "+String(current));
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 		staticOffset=currentAngleCentDegrees-current;
-		readLimits();
 		int32_t min_angle = (min_angle_cent_deg-staticOffset) / 24;
 		int32_t max_angle = (max_angle_cent_deg-staticOffset) / 24;
 		if(min_angle<0){
@@ -319,16 +324,16 @@ public:
 			move_time(currentAngleCentDegrees-theoretivalMinError-2,0);
 			//while(1);
 		}
-		if(min_angle<max_angle){
-			do{
-				uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
-						(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
-			}while(!isCommandOk());// this is a calibration and can not be allowed to fail
-		}else{
-			Serial.println("ERROR! Max of servo "+String(_id)+" must be larger than min");
-			//while(1);
-		}
+//		if(min_angle<max_angle){
+//			do{
+//				uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
+//						(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
+//				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
+//
+//				if(!isCommandOk())
+//					Serial.println("ERROR! Max of servo "+String(_id)+" must be larger than min "+String(min_angle)+" max= "+String(max_angle));
+//			}while(!isCommandOk());// this is a calibration and can not be allowed to fail
+//		}
 		minCentDegrees= (min_angle*24)+staticOffset;
 		maxCentDegrees= ((max_angle)*24)+staticOffset;
 	}
@@ -428,14 +433,14 @@ public:
 		}
 		if (isMotorMode)
 			motor_mode(0);
+		if(_bus->_debug)
+			Serial.println("Setting motor to "+String(angle));
 		angle = (angle-staticOffset) / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
 		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
 				_id);
-//		// this write command has a packet coming back
-//		commandOK = _bus->rcv(LX16A_SERVO_MOVE_TIME_WAIT_WRITE, params, 4,
-//						_id);
+
 	}
 
 	/**
