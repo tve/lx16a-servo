@@ -12,9 +12,10 @@ void setup() {
 
 void loop() {
 	int divisor =4;
-	for (int i = 0; i < 1000/divisor; i++) {
+
+	for (int x = -9000; x < 9000; x+=1000) {
 		long start = millis();
-		uint16_t angle = i * 24*divisor;
+		uint16_t angle = x;
 		int16_t pos = 0;
 		pos = servo.pos_read();
 		Serial.printf("\n\nPosition at %d -> %s\n", pos,
@@ -30,7 +31,7 @@ void loop() {
 		Serial.println("ID  = " + String(servo.id_read()));
 		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
 		long took = millis()-start;
-		long time = (10*divisor)-took;
+		long time = (100)-took;
 		if(time>0)
 			delay(time);
 		else{
