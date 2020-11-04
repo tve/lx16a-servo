@@ -405,12 +405,13 @@ public:
 	void move_time(int32_t angle, uint16_t time) {
 		initialize();
 		if(angle> maxCentDegrees){
+
+			Serial.println("ERROR Capped set at max "+String(maxCentDegrees)+" attempted "+String(angle));
 			angle=maxCentDegrees;
-			Serial.println("ERROR Capped set at max "+String(maxCentDegrees));
 		}
 		if(angle<minCentDegrees){
+			Serial.println("ERROR Capped set at min "+String(minCentDegrees)+" attempted "+String(angle));
 			angle=minCentDegrees;
-			Serial.println("ERROR Capped set at min "+String(minCentDegrees));
 		}
 		if (isMotorMode)
 			motor_mode(0);
