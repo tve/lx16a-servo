@@ -110,7 +110,7 @@ public:
 		}
 
 #if defined ARDUINO_ARCH_ESP32
-		pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
+		pinMode(myTXPin, OUTPUT|PULLUP);
 #elif defined(CORE_TEENSY)
 		_port->setTX(myTXPin, true);
 #endif
@@ -270,7 +270,10 @@ public:
 		initialize();
 		do{
 			current=pos_read()-staticOffset;
-			Serial.println("Calibration read = "+String(current));
+			if(!isCommandOk()){
+				Serial.println("Calibration read FAILED! on index "+String(_id));
+
+			}
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 		staticOffset=currentAngleCentDegrees-current;
 		int32_t min_angle = (min_angle_cent_deg-staticOffset) / 24;
@@ -296,7 +299,7 @@ public:
 				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
-			move_time(theoretivalMinError+2,0);
+			move_time(theoretivalMinError+1450,0);
 			//while(1);
 		}
 
@@ -321,7 +324,7 @@ public:
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 
-			move_time(currentAngleCentDegrees-theoretivalMinError-2,0);
+			move_time(currentAngleCentDegrees-theoretivalMinError-1450,0);
 			//while(1);
 		}
 //		if(min_angle<max_angle){
