@@ -47,6 +47,7 @@ public:
 
 	bool _debug;
 	bool _deepDebug = false;
+	bool singlePinMode=false;
 	LX16ABus() :
 			_debug(false) {
 	}
@@ -56,13 +57,26 @@ public:
 		_debug = on;
 
 	}
+	void beginOnePinMode(HardwareSerial * port, int tXrXpin){
+		_port = port;
+		myTXPin=tXrXpin;
+		singlePinMode=true;
 
+#if defined ARDUINO_ARCH_ESP32
+		port->begin(_baud, SERIAL_8N1,myTXPin,myTXPin);
+		pinMode(myTXPin, OUTPUT|PULLUP);
+
+#endif
+		delay(3);
+		while (port->available())
+			port->read();
+	}
 	void begin(HardwareSerial * port, int tXpin, int TXFlagGPIO = -1) {
 		_port = port;
 		myTXPin=tXpin;
 #if defined ARDUINO_ARCH_ESP32
         port->begin(_baud);
-        //pinMode(myTXPin, OUTPUT|PULLUP|OPEN_DRAIN);
+        pinMode(myTXPin, OUTPUT|PULLUP);
 #elif defined(CORE_TEENSY)
         pinMode(myTXPin, OUTPUT_OPENDRAIN);
 		port->begin(_baud, SERIAL_8N1);
@@ -75,7 +89,7 @@ public:
 		delay(3);
 		while (port->available())
 			port->read();
-		setTXFlag(TXFlagGPIO);
+		if(TXFlagGPIO>=0)setTXFlag(TXFlagGPIO);
 
 	}
 
@@ -97,7 +111,7 @@ public:
 	void write(const uint8_t *buf, int buflen) {
 
 #if defined ARDUINO_ARCH_ESP32
-		pinMode(myTXPin, OUTPUT);
+		pinMode(myTXPin, OUTPUT|PULLUP);
 #elif defined(CORE_TEENSY)
 		_port->setTX(myTXPin, false);
 #endif
@@ -110,7 +124,10 @@ public:
 		}
 
 #if defined ARDUINO_ARCH_ESP32
-		pinMode(myTXPin, OUTPUT|PULLUP);
+		if(singlePinMode)
+			pinMode(myTXPin, INPUT|PULLUP);
+		else
+			pinMode(myTXPin, OUTPUT|PULLUP);
 #elif defined(CORE_TEENSY)
 		_port->setTX(myTXPin, true);
 #endif
@@ -391,12 +408,13 @@ public:
 	void move_time(int32_t angle, uint16_t time) {
 		initialize();
 		if(angle> maxCentDegrees){
+
+			Serial.println("ERROR Capped set at max "+String(maxCentDegrees)+" attempted "+String(angle));
 			angle=maxCentDegrees;
-			Serial.println("ERROR Capped set at max "+String(maxCentDegrees));
 		}
 		if(angle<minCentDegrees){
+			Serial.println("ERROR Capped set at min "+String(minCentDegrees)+" attempted "+String(angle));
 			angle=minCentDegrees;
-			Serial.println("ERROR Capped set at min "+String(minCentDegrees));
 		}
 		if (isMotorMode)
 			motor_mode(0);
