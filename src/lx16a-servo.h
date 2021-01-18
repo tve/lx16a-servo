@@ -259,11 +259,12 @@ private:
 	bool isInitialized = false;
 	//private:
 	LX16ABus * _bus;
-	uint8_t _id = LX16A_BROADCAST_ID;
+
 	int32_t staticOffset =0;
 	int32_t maxCentDegrees =240000;
 	int32_t minCentDegrees =0;
 public:
+	uint8_t _id = LX16A_BROADCAST_ID;
 	LX16AServo(LX16ABus * bus, int id) :
 			_bus(bus), _id(id) {
 	}
