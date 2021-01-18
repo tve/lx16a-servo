@@ -317,8 +317,8 @@ public:
 				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
-			move_time(theoretivalMinError+1450,0);
-			//while(1);
+			move_time(theoretivalMinError+145,0);
+			while(1);
 		}
 
 		if(max_angle>1000){
@@ -342,8 +342,8 @@ public:
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 
-			move_time(currentAngleCentDegrees-theoretivalMinError-1450,0);
-			//while(1);
+			move_time(currentAngleCentDegrees-theoretivalMinError-145,0);
+			while(1);
 		}
 //		if(min_angle<max_angle){
 //			do{
