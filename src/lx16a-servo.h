@@ -455,8 +455,8 @@ public:
 		}
 		if (isMotorMode)
 			motor_mode(0);
-		if(_bus->_debug)
-			Serial.println("Setting motor to "+String(angle));
+//		if(_bus->_debug)
+//			Serial.println("Setting motor to "+String(angle));
 		angle = (angle-staticOffset) / 24;
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
