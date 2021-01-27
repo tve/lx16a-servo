@@ -296,6 +296,7 @@ public:
 		staticOffset=currentAngleCentDegrees-current;
 		int32_t min_angle = (min_angle_cent_deg-staticOffset) / 24;
 		int32_t max_angle = (max_angle_cent_deg-staticOffset) / 24;
+		int32_t angularOffset =0;
 		if(min_angle<0){
 			//staticOffset +=-min_angle_cent_deg;
 
@@ -317,8 +318,8 @@ public:
 				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
-			move_time(theoretivalMinError+145,0);
-			while(1);
+			move_time(pos_read()-theoretivalMinError+angularOffset,0);
+			//while(1);
 		}
 
 		if(max_angle>1000){
@@ -341,9 +342,10 @@ public:
 				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 						4, _id);
 			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
-
-			move_time(currentAngleCentDegrees-theoretivalMinError-145,0);
-			while(1);
+			int32_t newAngle = pos_read()-theoretivalMinError-angularOffset;
+			Serial.println(" Setting to in centDegrees "+String(newAngle));
+			move_time(newAngle,0);
+			//while(1);
 		}
 //		if(min_angle<max_angle){
 //			do{
