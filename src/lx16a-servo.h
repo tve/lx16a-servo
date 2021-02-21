@@ -388,9 +388,9 @@ public:
 			commandOK = true;
 			minCentDegrees= ((params[0] | ((uint16_t) params[1] << 8))*24)+staticOffset;
 			maxCentDegrees= ((params[2] | ((uint16_t) params[3] << 8))*24)+staticOffset;
-			if(minCentDegrees<maxCentDegrees){
-				maxCentDegrees=9000;
-				minCentDegrees=-9000;
+			if(minCentDegrees>maxCentDegrees){
+				maxCentDegrees=24000;
+				minCentDegrees=0;
 			}
 
 			Serial.println(" Min set "+String(minCentDegrees)+" max = "+String(maxCentDegrees));
