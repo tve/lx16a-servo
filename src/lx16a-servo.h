@@ -330,6 +330,7 @@ public:
 			Serial.println(" error in centDegrees "+String(theoretivalMinError));
 			Serial.println(" current in centDegrees "+String(currentAngleCentDegrees));
 			Serial.println(" range in centDegrees "+String(maxCentDegrees-minCentDegrees));
+
 			max_angle_in_Ticks=1000;
 			min_angle_in_Ticks=0;
 			minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
@@ -359,6 +360,10 @@ public:
 //		}
 		minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
 		maxCentDegrees= ((max_angle_in_Ticks)*24)+staticOffset;
+		if(abs(min_angle_cent_deg-minCentDegrees)>24)
+			Serial.println("FAULT Min angle desired was "+String(min_angle_cent_deg)+" got "+String(minCentDegrees));
+		if(abs(max_angle_cent_deg-maxCentDegrees)>24)
+			Serial.println("FAULT max angle desired was "+String(max_angle_cent_deg)+" got "+String(maxCentDegrees));
 	}
 	int32_t getMinCentDegrees(){
 		return minCentDegrees;
@@ -422,6 +427,12 @@ public:
 		if (isMotorMode)
 			motor_mode(0);
 		angle = (angle-staticOffset) / 24;
+		if(angle>1000){
+			angle=1000;
+		}
+		if(angle<0){
+			angle=0;
+		}
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
 		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4, _id);
