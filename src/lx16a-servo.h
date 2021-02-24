@@ -279,7 +279,7 @@ public:
 	 * and load in a specific value when the limit is reached
 	 *
 	 */
-	void calibrate(int32_t currentAngleCentDegrees,int32_t min_angle_cent_deg, int32_t max_angle_cent_deg){
+	bool calibrate(int32_t currentAngleCentDegrees,int32_t min_angle_cent_deg, int32_t max_angle_cent_deg){
 		if(min_angle_cent_deg>=max_angle_cent_deg){
 			Serial.println("Min can not be greater than max for  "+String(_id)+" halting");
 			while(1);
@@ -287,83 +287,61 @@ public:
 		int32_t current;
 		initialize();
 		do{
-			current=pos_read()-staticOffset;
+			pos_read();
+			current=pos_read_cached();
 			if(!isCommandOk()){
 				Serial.println("Calibration read FAILED! on index "+String(_id));
 
 			}
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
+		do {
+			uint8_t params[] = { (uint8_t) 0, (uint8_t) (0
+					>> 8),(uint8_t) 1000, (uint8_t) (1000 >> 8) };
+			commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
+					4, _id);
+		} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 		staticOffset=currentAngleCentDegrees-current;
 		int32_t min_angle_in_Ticks = (min_angle_cent_deg-staticOffset) / 24;
 		int32_t max_angle_in_Ticks = (max_angle_cent_deg-staticOffset) / 24;
-		int32_t angularOffset =0;
-		if(min_angle_in_Ticks<0){
+		int32_t currentTicks = current/24;
+		int32_t angularOffset =1450;
+		int32_t angularOffsetTicks =angularOffset/24;
+		if(min_angle_in_Ticks<0||max_angle_in_Ticks>1000){
 			//staticOffset +=-min_angle_cent_deg;
 
-			int theoretivalMinError  =  currentAngleCentDegrees-min_angle_cent_deg;
+			int32_t  theoretivalMinError  =  currentAngleCentDegrees-min_angle_cent_deg;
+			int32_t theoretivalMinErrorTicks = theoretivalMinError/24;
+			int32_t newSetpointTicks = theoretivalMinErrorTicks+angularOffsetTicks;
+			int32_t newAngle = (newSetpointTicks*24)+staticOffset;
+			Serial.println("ERROR! bounds of servo ID "+String(_id)+" can not be below hardware limit");
+			Serial.println("\tlower "+String(min_angle_in_Ticks)+" ticks (Must be > 0)");
+			Serial.println("\tcurrent "+String(currentTicks)+" ticks "+String(pos_read_cached()+staticOffset)+"deg");
+			Serial.println("\tupper "+String(max_angle_in_Ticks)+" ticks (Must be < 1000)");
+			Serial.println("\terror "+String(theoretivalMinErrorTicks)+" ticks ");
+			Serial.println("\tnewset "+String(newSetpointTicks)+" ticks ");
+			Serial.println("\tnewset deg "+String(newAngle)+" centDeg ");
 
-			Serial.println("ERROR! Minimum of servo ID"+String(_id)+" can not be below hardware limit");
-
-			Serial.println("Given the offset"+String(currentAngleCentDegrees)+"\n minimum in centDegrees "+String(minCentDegrees)+" of "+String(min_angle_cent_deg));
-			Serial.println(" maximum in centDegrees "+String(maxCentDegrees)+" of "+String(max_angle_cent_deg));
-			Serial.println(" error in centDegrees "+String(theoretivalMinError));
-			Serial.println(" current in centDegrees "+String(currentAngleCentDegrees));
-			minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
-			maxCentDegrees= ((max_angle_in_Ticks)*24)+staticOffset;
-			do {
-				uint8_t params[] = { (uint8_t) min_angle_in_Ticks, (uint8_t) (min_angle_in_Ticks
-						>> 8),
-
-				(uint8_t) max_angle_in_Ticks, (uint8_t) (max_angle_in_Ticks >> 8) };
-				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
-						4, _id);
-			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
-			move_time(pos_read()-theoretivalMinError+angularOffset,0);
-			//while(1);
-		}
-
-		if(max_angle_in_Ticks>1000){
-			int theoretivalMinError  =  (max_angle_cent_deg-(24000+staticOffset));
-			Serial.println("ERROR! Maximum of servo ID"+String(_id)+" can not be above hardware limit");
-			Serial.println("Given the offset "+String(currentAngleCentDegrees)+"\n minimum in centDegrees "+String(minCentDegrees)+" of "+String(min_angle_cent_deg));
-			Serial.println(" maximum in centDegrees "+String(maxCentDegrees)+" of "+String(max_angle_cent_deg));
-			Serial.println(" error in centDegrees "+String(theoretivalMinError));
-			Serial.println(" current in centDegrees "+String(currentAngleCentDegrees));
-			Serial.println(" range in centDegrees "+String(maxCentDegrees-minCentDegrees));
-
-			max_angle_in_Ticks=1000;
 			min_angle_in_Ticks=0;
+			max_angle_in_Ticks=1000;
 			minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
 			maxCentDegrees= ((max_angle_in_Ticks)*24)+staticOffset;
-			do {
-				uint8_t params[] = { (uint8_t) min_angle_in_Ticks, (uint8_t) (min_angle_in_Ticks
-						>> 8),
-
-				(uint8_t) max_angle_in_Ticks, (uint8_t) (max_angle_in_Ticks >> 8) };
-				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
-						4, _id);
-			} while (!isCommandOk());// this is a calibration and can not be allowed to fail
-			int32_t newAngle = pos_read()-theoretivalMinError-angularOffset;
-			Serial.println(" Setting to in centDegrees "+String(newAngle));
 			move_time(newAngle,0);
-			//while(1);
+			delay(500);
+			return false;
+		}else{
+			Serial.println("\nBounds of servo ID "+String(_id)+" ok!");
+			Serial.println("\tlower "+String(min_angle_in_Ticks)+" ticks ");
+			Serial.println("\tcurrent "+String(currentTicks)+" ticks ");
+			Serial.println("\tupper "+String(max_angle_in_Ticks)+" ticks ");
 		}
-//		if(min_angle<max_angle){
-//			do{
-//				uint8_t params[] = { (uint8_t) min_angle, (uint8_t) (min_angle >> 8),
-//						(uint8_t) max_angle, (uint8_t) (max_angle >> 8) };
-//				commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params, 4, _id);
-//
-//				if(!isCommandOk())
-//					Serial.println("ERROR! Max of servo "+String(_id)+" must be larger than min "+String(min_angle)+" max= "+String(max_angle));
-//			}while(!isCommandOk());// this is a calibration and can not be allowed to fail
-//		}
+
 		minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
 		maxCentDegrees= ((max_angle_in_Ticks)*24)+staticOffset;
 		if(abs(min_angle_cent_deg-minCentDegrees)>24)
 			Serial.println("FAULT Min angle desired was "+String(min_angle_cent_deg)+" got "+String(minCentDegrees));
 		if(abs(max_angle_cent_deg-maxCentDegrees)>24)
 			Serial.println("FAULT max angle desired was "+String(max_angle_cent_deg)+" got "+String(maxCentDegrees));
+		return true;
 	}
 	int32_t getMinCentDegrees(){
 		return minCentDegrees;
@@ -433,6 +411,7 @@ public:
 		if(angle<0){
 			angle=0;
 		}
+		Serial.println("Setting ticks "+String(angle)+" on ID "+String(_id));
 		uint8_t params[] = { (uint8_t) angle, (uint8_t) (angle >> 8),
 				(uint8_t) time, (uint8_t) (time >> 8) };
 		commandOK = _bus->write(LX16A_SERVO_MOVE_TIME_WRITE, params, 4, _id);
