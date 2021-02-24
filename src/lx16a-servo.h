@@ -307,13 +307,11 @@ public:
 		int32_t angularOffset =1450;
 		int32_t angularOffsetTicks =angularOffset/24;
 		if(min_angle_in_Ticks<0||max_angle_in_Ticks>1000){
-			//staticOffset +=-min_angle_cent_deg;
-
 			int32_t  theoretivalMinError  =  currentAngleCentDegrees-min_angle_cent_deg;
 			int32_t theoretivalMinErrorTicks = theoretivalMinError/24;
 			int32_t newSetpointTicks = theoretivalMinErrorTicks+angularOffsetTicks;
 			int32_t newAngle = (newSetpointTicks*24)+staticOffset;
-			Serial.println("ERROR! bounds of servo ID "+String(_id)+" can not be below hardware limit");
+			Serial.println("ERROR! bounds of servo ID "+String(_id)+" can not be outside hardware limit");
 			Serial.println("\tlower "+String(min_angle_in_Ticks)+" ticks (Must be > 0)");
 			Serial.println("\tcurrent "+String(currentTicks)+" ticks "+String(pos_read_cached()+staticOffset)+"deg");
 			Serial.println("\tupper "+String(max_angle_in_Ticks)+" ticks (Must be < 1000)");
