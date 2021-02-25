@@ -294,12 +294,7 @@ public:
 
 			}
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
-		do {
-			uint8_t params[] = { (uint8_t) 0, (uint8_t) (0
-					>> 8),(uint8_t) 1000, (uint8_t) (1000 >> 8) };
-			commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
-					4, _id);
-		} while (!isCommandOk());// this is a calibration and can not be allowed to fail
+
 		staticOffset=currentAngleCentDegrees-current;
 		int32_t min_angle_in_Ticks = (min_angle_cent_deg-staticOffset) / 24;
 		int32_t max_angle_in_Ticks = (max_angle_cent_deg-staticOffset) / 24;
@@ -323,6 +318,7 @@ public:
 			max_angle_in_Ticks=1000;
 			minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
 			maxCentDegrees= ((max_angle_in_Ticks)*24)+staticOffset;
+			setLimitsTicks(min_angle_in_Ticks,max_angle_in_Ticks);
 			move_time(newAngle,0);
 			delay(500);
 			return false;
@@ -332,7 +328,7 @@ public:
 			Serial.println("\tcurrent "+String(currentTicks)+" ticks ");
 			Serial.println("\tupper "+String(max_angle_in_Ticks)+" ticks ");
 		}
-
+		setLimitsTicks(min_angle_in_Ticks,max_angle_in_Ticks);
 		minCentDegrees= (min_angle_in_Ticks*24)+staticOffset;
 		maxCentDegrees= ((max_angle_in_Ticks)*24)+staticOffset;
 		if(abs(min_angle_cent_deg-minCentDegrees)>24)
@@ -340,6 +336,14 @@ public:
 		if(abs(max_angle_cent_deg-maxCentDegrees)>24)
 			Serial.println("FAULT max angle desired was "+String(max_angle_cent_deg)+" got "+String(maxCentDegrees));
 		return true;
+	}
+	void setLimitsTicks(int32_t lower,int32_t upper){
+		do {
+			uint8_t params[] = { (uint8_t) lower, (uint8_t) (lower
+					>> 8),(uint8_t) upper, (uint8_t) (upper >> 8) };
+			commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
+					4, _id);
+		} while (!isCommandOk());// this is a calibration and can not be allowed to fail
 	}
 	int32_t getMinCentDegrees(){
 		return minCentDegrees;
