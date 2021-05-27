@@ -342,14 +342,15 @@ public:
 			lower=0;
 		if(upper>1000)
 			upper=1000;
-		for(int i=0;i<5;i++){
+		for(int i=0;i<2;i++){
 			uint8_t params[] = { (uint8_t) lower, (uint8_t) (lower
 					>> 8),(uint8_t) upper, (uint8_t) (upper >> 8) };
 			commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 					4, _id);
 			if(isCommandOk())
 				return;
-			Serial.println("Set Limits Failed ID "+String(_id)+" Lower "+String(lower)+" upper: "+String(upper)+" Retry #"+String(i));
+			if(_bus->_debug)
+				Serial.println("Set Limits Failed ID "+String(_id)+" Lower "+String(lower)+" upper: "+String(upper)+" Retry #"+String(i));
 		}
 	}
 	int32_t getMinCentDegrees(){
