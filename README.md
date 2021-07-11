@@ -1,58 +1,58 @@
-# LX-16A Servo Library
+# LX-16A, LX-224 and LX-15D Servo Library
 
-Simple ESP32-Arduino library to operate LX-16A serial servos.
+Simple Arduino library to operate LX-16A, LX-224 and LX-15D serial servos.
 
-This library sends simple commands to LewanSoul LX-16A serial bus servos.
-It is designed for the ESP32 Arduino framework and uses a single pin to interface to the servos
-as opposed to the more common 3-pin configuration (TX, RX, direction).
+This library sends simple commands to LewanSoul LX-16A, LX-224  and Hiwonder LX-15D serial bus servos.
+It is designed for the Arduino framework and uses the more common 3-pin configuration (TX, RX, direction).
 
-The library's LX16AServo class provides two main methods to write a command and to read settings.
-It's very simple!
+Using the BusLinker v2.2 IS NOT RECOMMENDED, it is not compatible with this library.
 
-## Quick start
+# Electrical
 
-Allocate a bus object to represent the serial line, and a servo object for the first servo:
-```
-LX16ABus servoBus;
-LX16AServo servo(servoBus, 1);
-```
+The LX-* servos all use a 3.3v driven bi directional asynchronus serial. It is similar to UART, but uses both signals on one pin. Because of this, the Master TX line has to be connected only while transmitting. The correct way to do this is a buffer chip 74HC126. 
 
-Initialize the bus to use Serial1 on pin 33:
-```
-servoBus.begin(Serial1, 33);
-```
+https://www.digikey.com/product-detail/en/texas-instruments/SN74HC126N/296-8221-5-ND
 
-Step servo through its 240 degrees range, 10% at a time:
-```
-int n = 0;
-loop() {
-    uint16_t angle = (n%11) * 100;
+This library uses an IO pin passed to the begin() method to flag when the master is transmitting on the bus. When the flag is de-asserted, then the bus is freed for a motor to transmit, with the Masters UART TX line held in high-impedance.
 
-    uint8_t params[] = { (uint8_t)angle, (uint8_t)(angle>>8), 500&0xff, 500>>8 };
-    bool ok = servo.write(1, params, sizeof(params));
-    printf("Move to %d -> %s\n", angle, ok?"OK":"ERR");
+## Detailed Example instructions
 
-    delay(10);
+How to Wire up an ItsyBitsy to the LewanSoul Bus motors
 
-    ok = servo.read(2, params, 4);
-    printf("Position at %d -> %s\n", params[0]|(params[1]<<8), ok?"OK":"ERR");
+Here are detailed instructions for how to wire up the Lewansoul motors using the $0.43 chip linked above. https://github.com/Hephaestus-Arm/HephaestusArm2/blob/0.1.1/electronics.md#2-setting-up-the-board
 
-    n++;
-    delay(2000);
-}
-```
-
-## High-level methods
-
-The library implements a number of high-level functions which correspond to the lx16-a commands. For
-example:
+## Generic instructions
 
 ```
-// angle_adjust sets the position angle offset in centi-degrees (-3000..3000)
-bool angle_adjust(int16_t angle);
-
-// temp_read returns the servo temperature in centigrade
-bool temp(uint8_t &temp);
+MCU RX -> Direct Connection -> LX-* Serial Pin
+MCU TX -> 74HC126 A   
+MCU Flag GPIO -> 74HC126 OE
+74HC126 Y -> LX-* Serial Pin
+6v-7.5v ->  LX-* Power (center) pin
+GND     ->  LX-* GND Pin
 ```
-Not all commands have been implemented, but it's easy to add any that are needed and missing.
-See `src/LC16AServo.h`.
+
+The MCU Rx pin always listens,a nd hears its own bytes comming in. This library clears out the incomming bytes and will hang if it could not hear itself talking. 
+
+### ESP32 and Teensy
+
+The esp32 and the Teensy microcontrollers have the ability to run the serial Tx in Open Drain mode. This is detected by the library and done automatically. This means the pins for tx and rx can be connected together and used to talk to the motors without bus conflicts. 
+
+```
+MCU RX -> Direct Connection -> LX-16a Serial Pin
+MCU TX -> Direct Connection   -> LX-16a Serial Pin
+LX-16a Serial Pin -> 1k Ohm resistor -> 3.3v
+6v-7.5v ->  LX-16a Power (center) pin
+GND     ->  LX-16a GND Pin
+```
+### Other Arduino Quick and dirty/ Hacky one motor setup
+
+This wireing configuration will get you up and running fast. You will get a few failed commands and errored bytes using this method. It is usefull to quickly test a servo on a new system.  
+
+```
+MCU RX -> Direct Connection -> LX-16a Serial Pin
+MCU TX -> 1K Ohm resistor   -> LX-16a Serial Pin
+6v-7.5v ->  LX-16a Power (center) pin
+GND     ->  LX-16a GND Pin
+```
+
