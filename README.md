@@ -34,9 +34,23 @@ GND     ->  LX-* GND Pin
 
 The MCU Rx pin always listens,a nd hears its own bytes comming in. This library clears out the incomming bytes and will hang if it could not hear itself talking. 
 
-### ESP32 and Teensy
+### ESP 32 One Wire Mode
 
-The esp32 and the Teensy microcontrollers have the ability to run the serial Tx in Open Drain mode. This is detected by the library and done automatically. This means the pins for tx and rx can be connected together and used to talk to the motors without bus conflicts. 
+Use the One Wire Mode on ESP32 for no additional electrical components.
+
+```
+
+MCU Serial -> Direct Connection -> LX-16a Serial Pin
+
+6v-7.5v ->  LX-16a Power (center) pin
+
+GND     ->  LX-16a GND Pin
+
+```
+
+### Teensy
+
+The the Teensy microcontrollers have the ability to run the serial Tx in Open Drain mode. This is detected by the library and done automatically. This means the pins for tx and rx can be connected together and used to talk to the motors without bus conflicts. 
 
 ```
 MCU RX -> Direct Connection -> LX-16a Serial Pin
