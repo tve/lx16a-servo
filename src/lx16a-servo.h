@@ -45,11 +45,10 @@ private:
 
 public:
 
-	bool _debug;
+	bool _debug = false;
 	bool _deepDebug = false;
 	bool singlePinMode=false;
-	LX16ABus() :
-			_debug(false) {
+	LX16ABus() {
 	}
 
 	// debug enables/disables debug printf's for this servo
@@ -95,10 +94,10 @@ public:
 
 
 	// time returns the number of ms to TX/RX n characters
-	uint32_t time(uint8_t n) {
+	uint32_t time(uint32_t n) {
 		return n * 10 * 1000 / _baud; // 10 bits per char
 	}
-	uint32_t timeus(uint8_t n) {
+	uint32_t timeus(uint32_t n) {
 		return n * 10 * 1000000 / _baud; // 10 bits per char
 	}
 	// methods passed through to Serial
@@ -117,12 +116,17 @@ public:
 #endif
 //		_port->write(buf, buflen);
 //		_port->flush();
-		delayMicroseconds(10);
-		for(int i=0;i<buflen;i++){
-			_port->write(buf[i]);
+		if(!singlePinMode){
+			delayMicroseconds(10);
+			for(int i=0;i<buflen;i++){
+				_port->write(buf[i]);
+				_port->flush();
+			}
+		}
+		if(singlePinMode){
+			_port->write(buf, buflen);
 			_port->flush();
 		}
-
 #if defined ARDUINO_ARCH_ESP32
 		if(singlePinMode)
 			pinMode(myTXPin, INPUT|PULLUP);
@@ -556,8 +560,10 @@ public:
 	// pos_read returns the servo position in centi-degrees (0..24000)
 	int32_t pos_read() {
 		initialize();
-		uint8_t params[2];
+		uint8_t params[3];
 		if (!_bus->read(LX16A_SERVO_POS_READ, params, 2, _id)) {
+			if(_bus->_debug)
+				Serial.print("Position Read failed "+String(_id)+"\n\n");
 			commandOK = false;
 			return pos_read_cached()+staticOffset;
 		}
