@@ -353,10 +353,14 @@ public:
 					>> 8),(uint8_t) upper, (uint8_t) (upper >> 8) };
 			commandOK = _bus->write(LX16A_SERVO_ANGLE_LIMIT_WRITE, params,
 					4, _id);
-			if(isCommandOk())
+
+			if(isCommandOk()){
+				Serial.println("Set Limit MotorID:"+String(_id)+" Min set "+String(((lower*24)+staticOffset))+" max = "+String((upper*24)+staticOffset));
 				return;
+			}
 			if(_bus->_debug)
 				Serial.println("Set Limits Failed ID "+String(_id)+" Lower "+String(lower)+" upper: "+String(upper)+" Retry #"+String(i));
+
 		}
 	}
 	int32_t getMinCentDegrees(){
@@ -385,14 +389,22 @@ public:
 				commandOK = false;
 			}
 			commandOK = true;
-			minCentDegrees= ((params[0] | ((uint16_t) params[1] << 8))*24)+staticOffset;
-			maxCentDegrees= ((params[2] | ((uint16_t) params[3] << 8))*24)+staticOffset;
+			int lowicks=(params[0] | ((uint16_t) params[1] << 8));
+			int highticks=(params[2] | ((uint16_t) params[3] << 8));
+
+			minCentDegrees= (lowicks*24)+staticOffset;
+			maxCentDegrees= (highticks*24)+staticOffset;
 			if(minCentDegrees>maxCentDegrees){
+				Serial.println("ERR MotorID:"+String(_id)+
+											" Min set "+String(minCentDegrees)+
+											" max = "+String(maxCentDegrees)+
+											" Min ticks "+String(lowicks)+
+											" max ticks = "+String(highticks));
+
 				maxCentDegrees=24000;
 				minCentDegrees=0;
-			}
-
-			Serial.println(" Min set "+String(minCentDegrees)+" max = "+String(maxCentDegrees));
+			}else
+				Serial.println("MotorID:"+String(_id)+" Min set "+String(minCentDegrees)+" max = "+String(maxCentDegrees));
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 	}
 
