@@ -387,24 +387,30 @@ public:
 		do{
 			if (!_bus->read(LX16A_SERVO_ANGLE_LIMIT_READ, params, 4, _id)) {
 				commandOK = false;
+
+			} else {
+				commandOK = true;
+				int lowicks = (params[0] | ((uint16_t) params[1] << 8));
+				int highticks = (params[2] | ((uint16_t) params[3] << 8));
+
+				minCentDegrees = (lowicks * 24) + staticOffset;
+				maxCentDegrees = (highticks * 24) + staticOffset;
+				if (minCentDegrees > maxCentDegrees) {
+					Serial.println(
+							"ERR MotorID:" + String(_id) + " Min set "
+									+ String(minCentDegrees) + " max = "
+									+ String(maxCentDegrees) + " Min ticks "
+									+ String(lowicks) + " max ticks = "
+									+ String(highticks));
+
+					maxCentDegrees = 24000;
+					minCentDegrees = 0;
+				} else
+					Serial.println(
+							"MotorID:" + String(_id) + " Min set "
+									+ String(minCentDegrees) + " max = "
+									+ String(maxCentDegrees));
 			}
-			commandOK = true;
-			int lowicks=(params[0] | ((uint16_t) params[1] << 8));
-			int highticks=(params[2] | ((uint16_t) params[3] << 8));
-
-			minCentDegrees= (lowicks*24)+staticOffset;
-			maxCentDegrees= (highticks*24)+staticOffset;
-			if(minCentDegrees>maxCentDegrees){
-				Serial.println("ERR MotorID:"+String(_id)+
-											" Min set "+String(minCentDegrees)+
-											" max = "+String(maxCentDegrees)+
-											" Min ticks "+String(lowicks)+
-											" max ticks = "+String(highticks));
-
-				maxCentDegrees=24000;
-				minCentDegrees=0;
-			}else
-				Serial.println("MotorID:"+String(_id)+" Min set "+String(minCentDegrees)+" max = "+String(maxCentDegrees));
 		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
 	}
 
