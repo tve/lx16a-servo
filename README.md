@@ -1,8 +1,8 @@
-# LX-16A, LX-224 and LX-15D Servo Library
+# LX-16A, LX-224, HTS-35H and LX-15D Servo Library
 
-Simple Arduino library to operate LX-16A, LX-224 and LX-15D serial servos.
+Simple Arduino library to operate LX-16A, LX-224, HTS-35H and LX-15D serial servos.
 
-This library sends simple commands to LewanSoul LX-16A, LX-224  and Hiwonder LX-15D serial bus servos.
+This library sends simple commands to LewanSoul LX-16A, LX-224, HTS-35H  and Hiwonder LX-15D serial bus servos.
 It is designed for the Arduino framework and uses the more common 3-pin configuration (TX, RX, direction).
 
 Using the BusLinker v2.2 IS NOT RECOMMENDED, it is not compatible with this library.
