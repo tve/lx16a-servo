@@ -64,6 +64,10 @@ public:
 #if defined ARDUINO_ARCH_ESP32
 		port->begin(_baud, SERIAL_8N1,myTXPin,myTXPin);
 		pinMode(myTXPin, OUTPUT|PULLUP);
+#elif defined(CORE_TEENSY)
+        pinMode(myTXPin, OUTPUT_OPENDRAIN);
+		port->begin(_baud, SERIAL_8N1 | SERIAL_HALF_DUPLEX);
+		port->setTX(myTXPin, true);
 
 #endif
 		delay(3);
