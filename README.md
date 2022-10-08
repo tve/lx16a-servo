@@ -15,6 +15,10 @@ https://www.digikey.com/product-detail/en/texas-instruments/SN74HC126N/296-8221-
 
 This library uses an IO pin passed to the begin() method to flag when the master is transmitting on the bus. When the flag is de-asserted, then the bus is freed for a motor to transmit, with the Masters UART TX line held in high-impedance.
 
+**LX-224 Pinout**
+
+<img src="https://github.com/Hephaestus-Arm/HephaestusArm2/blob/0.1.1/photos/motor_cable.jpg" width="600">
+
 ## Detailed Example instructions
 
 How to Wire up an ItsyBitsy to the LewanSoul Bus motors
@@ -32,7 +36,7 @@ MCU Flag GPIO -> 74HC126 OE
 GND     ->  LX-* GND Pin
 ```
 
-The MCU Rx pin always listens,a nd hears its own bytes comming in. This library clears out the incomming bytes and will hang if it could not hear itself talking. 
+The MCU Rx pin always listens, and hears its own bytes comming in. This library clears out the incomming bytes and will hang if it could not hear itself talking. 
 
 ### ESP32  One Pin Mode
 
