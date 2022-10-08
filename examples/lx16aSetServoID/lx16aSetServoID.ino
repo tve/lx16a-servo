@@ -14,7 +14,14 @@ void loop() {
 	// Set any motor plugged in to ID 3
 	// this INO acts as an auto-provisioner for any motor plugged in
 	servo.id_write(id);
-	Serial.println("Setting to ID "+String (id));
+	Serial.println("Attempting set to ID "+String (id));
+	int read=servo.id_read();
+	if(read!=id || read==0){
+		Serial.println("\r\nERROR ID set failed");
+		delay(500);
+	}else{
+		Serial.println("\r\nCurrent ID is now "+String(read));
+	}
 	delay(200);
 
 }
