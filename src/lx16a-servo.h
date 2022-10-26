@@ -203,7 +203,7 @@ public:
 	 */
 	bool disableAll() {
 		uint8_t params[] = { 0 };
-		return write(LX16A_SERVO_ID_WRITE, params, 1,
+		return write(LX16A_SERVO_LOAD_OR_UNLOAD_WRITE, params, 1,
 		LX16A_BROADCAST_ID);
 	}
 	/**
@@ -217,7 +217,7 @@ public:
 	 */
 	bool enableAll() {
 		uint8_t params[] = { 1 };
-		return write(LX16A_SERVO_ID_WRITE, params, 1,
+		return write(LX16A_SERVO_LOAD_OR_UNLOAD_WRITE, params, 1,
 		LX16A_BROADCAST_ID);
 	}
 	/**
