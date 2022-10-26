@@ -5,8 +5,8 @@ LX16AServo servo(&servoBus, LX16A_BROADCAST_ID);// send these commands to any mo
 int id =3;
 void setup() {
 	servoBus.begin(&Serial1,
-			1,// on TX pin 1
-			2);// use pin 2 as the TX flag for buffer
+			4,// on TX pin 4
+			16);// use pin 16 as the TX flag for buffer
 	Serial.begin(115200);
 }
 
