@@ -43,8 +43,7 @@ The MCU Rx pin always listens, and hears its own bytes comming in. This library 
 The esp32 microcontrollers have the ability to run the serial Tx in Open Drain mode. This is detected by the library and done automatically. This means the pins for tx and rx are the same pin. 
 
 ```
-MCU RX -> Direct Connection -> LX-16a Serial Pin
-MCU TX -> Direct Connection   -> LX-16a Serial Pin
+MCU RX/TX -> Direct Connection -> LX-16a Serial Pin
 6v-7.5v ->  LX-16a Power (center) pin
 GND     ->  LX-16a GND Pin
 ```
