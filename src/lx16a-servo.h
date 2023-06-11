@@ -385,6 +385,7 @@ public:
 		motor_mode(0);
 		pos_read();
 		readLimits();
+		delay(1);
 	}
 
 	void readLimits(){

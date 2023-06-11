@@ -158,8 +158,8 @@ bool LX16ABus::rcv(uint8_t cmd, uint8_t *params, int param_len, uint8_t MYID) {
 			default:
 				if (got == len - 1) {
 					if ((uint8_t) ch == (uint8_t) ~sum) {
-						if (_deepDebug)
-							Serial.println(" OK\n");
+						//if (_deepDebug)
+						//	Serial.println(" OK\n");
 						return true;
 					} else {
 						if (_debug)
