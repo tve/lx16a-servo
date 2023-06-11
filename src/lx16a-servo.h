@@ -252,6 +252,7 @@ public:
 		return params[0];
 
 	}
+
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
@@ -388,10 +389,13 @@ public:
 
 	void readLimits(){
 		uint8_t params[4];
+		int numFail=0;
 		do{
 			if (!_bus->read(LX16A_SERVO_ANGLE_LIMIT_READ, params, 4, _id)) {
 				commandOK = false;
-
+				if(_bus->_debug){
+					Serial.println("ERROR reading limits #"+String(_id));
+				}
 			} else {
 				commandOK = true;
 				int lowicks = (params[0] | ((uint16_t) params[1] << 8));
@@ -415,7 +419,7 @@ public:
 									+ String(minCentDegrees) + " max = "
 									+ String(maxCentDegrees));
 			}
-		}while(!isCommandOk());// this is a calibration and can not be allowed to fail
+		}while(!isCommandOk()&&numFail++<3);// this is a calibration and can not be allowed to fail
 	}
 
 	/**
@@ -613,7 +617,18 @@ public:
 		commandOK = true;
 		return params[0];
 
+	}	// id_read returns the ID of the servo using its ID for verification
+	uint8_t id_verify() {
+		uint8_t params[1];
+		if (!_bus->read(LX16A_SERVO_ID_READ, params, 1, _id)) {
+			commandOK = false;
+			return 0;
+		}
+		commandOK = true;
+		return params[0];
+
 	}
+
 	// id_write sets the id of the servo, updates the object's id if write appears successful
 	void id_write(uint8_t id) {
 		uint8_t params[] = { id };
