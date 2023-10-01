@@ -58,3 +58,19 @@ MCU TX -> 1K Ohm resistor   -> LX-16a Serial Pin
 GND     ->  LX-16a GND Pin
 ```
 
+## ESP32 Board & PlatformIO Environment Configuration
+
+These drivers have been written to work with earlier versions of the ESP32 toolchains. Problems with reading from and writing to the servos were encountered with newer toolchain versions and newer ESP32 dev boards. Two dev boards were found to work with the environment setup shown below. These boards are the NodeMCU-32s and the ESP32 DevKitC-32e.
+
+```
+[env:nodemcu-32s]
+platform = espressif32@2.0.0
+board = nodemcu-32s
+framework = arduino
+monitor_speed = 115200
+lib_deps = 
+    madhephaestus/lx16a-servo@^0.9.3
+```
+
+It should be noted that running the ESP32 DevKitC-32e with its intended platform/toolchain (espressif32@4.0.0 and onwards) did not work with these servo drivers.
+
