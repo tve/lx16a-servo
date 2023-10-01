@@ -58,6 +58,12 @@ MCU TX -> 1K Ohm resistor   -> LX-16a Serial Pin
 GND     ->  LX-16a GND Pin
 ```
 
+## ESP32 toolchain
+
+This library was writen for the 1.0.4 toolchain. It also works with the 2.0.0 toolchain for newer processors. 
+
+Changes in the toolchain moving forward have broken the one-pin mode and cause you to need to use the buffer chip, or back-date the toolchain.
+
 ## ESP32 Board & PlatformIO Environment Configuration
 
 These drivers have been written to work with earlier versions of the ESP32 toolchains. Problems with reading from and writing to the servos were encountered with newer toolchain versions and newer ESP32 dev boards. Two dev boards were found to work with the environment setup shown below. These boards are the NodeMCU-32s and the ESP32 DevKitC-32e.
